@@ -1,4 +1,7 @@
 
+# adapted from https://github.com/junpenglao/Planet_Sakaar_Data_Science/blob/main/PyMC3QnA/discourse_8528%20(MUSE).ipynb
+# special thanks to Junpeng Lao
+
 import aesara
 import aesara.tensor as at
 import arviz as az
@@ -25,34 +28,36 @@ class PyMCMuseProblem(MuseProblem):
         self.θ_RVs = [var for var in model.basic_RVs if model_graph.get_parents(var) == set()]
         self.z_RVs = [var for var in model.free_RVs if var not in self.θ_RVs]
 
-        # compile aesara functions for the gradients we need, as a function of (x,z,θ)
+        # compile aesara functions for the likelihood gradients we need, as a function of (x,z,θ)
         rvs_to_values, logpt = unconditioned_logpt(model)
         ordered_values = [rvs_to_values[v] for v in (self.x_RVs + self.z_RVs + self.θ_RVs)]
+        θ_vals = [rvs_to_values[v] for v in self.θ_RVs]
         logp = aesara.function(ordered_values, logpt)
-        dθlogpt, = aesara.grad(
-            logpt, 
-            wrt = [rvs_to_values[v] for v in self.θ_RVs],
-            consider_constant = [rvs_to_values[v] for v in (self.z_RVs + self.x_RVs)]
-        )
-        dzlogpt, = aesara.grad(
-            logpt, 
-            wrt = [rvs_to_values[v] for v in self.z_RVs],
-            consider_constant = [rvs_to_values[v] for v in (self.θ_RVs + self.x_RVs)]
-        )
+        dθlogpt = pm.gradient(logpt, θ_vals)
+        dzlogpt = pm.gradient(logpt, [rvs_to_values[v] for v in self.z_RVs])
         self.dθlogp = aesara.function(ordered_values, [dθlogpt])
         self.logp_dzlogp = aesara.function(ordered_values, [logpt, dzlogpt])
 
+        # compile aseara function for prior gradient/hessian
+        logpriort = at.sum([logpt.sum() for (logpt, var) in zip(model.logp_elemwiset(), model.basic_RVs) if var in self.θ_RVs])
+        dlogpriort = pm.gradient(logpriort, θ_vals)
+        d2logpriort = pm.hessian(logpriort, θ_vals)
+        self.dlogprior_d2logprior = aesara.function(θ_vals, [dlogpriort, d2logpriort])
 
-    def sample_x_z(self, θ):
+
+
+    def sample_x_z(self, rng, θ):
         _sample_x_z = aesara.function(self.θ_RVs, self.x_RVs + self.z_RVs)
         return _sample_x_z(θ)
-
 
     def gradθ_logLike(self, x, z, θ):
         return self.dθlogp(x, z, θ)
 
     def logLike_and_gradz_logLike(self, x, z, θ):
         return self.logp_dzlogp(x, z, θ)
+
+    def grad_hess_θ_logPrior(self, θ):
+        return self.dlogprior_d2logprior(θ)
 
 
 
