@@ -6,6 +6,12 @@
 muse_inference
 ==============
 
+.. image:: https://img.shields.io/badge/documentation-latest-blue.svg
+   :target: https://cosmicmar.com/muse_inference
+
+.. image:: https://img.shields.io/badge/source-github-blue
+   :target: https://github.com/marius311/muse_inference
+
 .. image:: https://github.com/marius311/muse_inference/actions/workflows/doctests.yml/badge.svg
    :target: https://github.com/marius311/muse_inference/actions/workflows/doctests.yml
 
@@ -36,3 +42,7 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+
+.. |br| raw:: html
+
+      <br>
