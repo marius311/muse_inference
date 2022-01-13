@@ -138,14 +138,15 @@ from muse_inference.pymc import PyMCMuseProblem
 ```
 
 ```python
-def gen_funnel(x=None, θ=None):
-    with pm.Model() as funnel:
+def gen_funnel(x=None, θ=None, rng_seeder=None):
+    with pm.Model(rng_seeder=rng_seeder) as funnel:
         θ = θ if θ else pm.Normal("θ", 0, 3)
         z = pm.Normal("z", 0, np.exp(θ / 2), size=512)
         x = pm.Normal("x", z, 1, observed=x)
     return funnel
         
-x_obs = pm.sample_prior_predictive(1, model=gen_funnel(θ=θ_true)).prior.x[0,0]
+rng = np.random.RandomState(0)
+x_obs = pm.sample_prior_predictive(1, model=gen_funnel(θ=θ_true, rng_seeder=rng)).prior.x[0,0]
 funnel = gen_funnel(x_obs)
 prob = PyMCMuseProblem(funnel)
 prob.x = x_obs

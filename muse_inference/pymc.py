@@ -47,6 +47,11 @@ class PyMCMuseProblem(MuseProblem):
 
 
     def sample_x_z(self, rng, θ):
+        self.model.rng_seeder = rng
+        for rng in self.model.rng_seq:
+            state = self.model.next_rng().get_value().get_state()
+            self.model.rng_seq.pop() # the call to next_rng undesiredly added it to rng_seq
+            rng.get_value(borrow=True).set_state(state)
         _sample_x_z = aesara.function(self.θ_RVs, self.x_RVs + self.z_RVs)
         return _sample_x_z(θ)
 
