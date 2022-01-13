@@ -419,7 +419,7 @@ div.rendered_html tbody tr:hover {
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-100%|██████████| 1010/1010 [00:00&lt;00:00, 1097.39it/s]
+100%|██████████| 1010/1010 [00:00&lt;00:00, 1151.12it/s]
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
@@ -500,7 +500,7 @@ div.rendered_html tbody tr:hover {
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
   0%|          | 0/1010 [00:00&lt;?, ?it/s]WARNING:absl:No GPU/TPU found, falling back to CPU. (Set TF_CPP_MIN_LOG_LEVEL=0 and rerun for more info.)
-100%|██████████| 1010/1010 [00:10&lt;00:00, 94.70it/s]
+100%|██████████| 1010/1010 [00:10&lt;00:00, 97.32it/s]
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
@@ -536,14 +536,15 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">gen_funnel</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">θ</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="k">with</span> <span class="n">pm</span><span class="o">.</span><span class="n">Model</span><span class="p">()</span> <span class="k">as</span> <span class="n">funnel</span><span class="p">:</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">gen_funnel</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">θ</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rng_seeder</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">with</span> <span class="n">pm</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">rng_seeder</span><span class="o">=</span><span class="n">rng_seeder</span><span class="p">)</span> <span class="k">as</span> <span class="n">funnel</span><span class="p">:</span>
         <span class="n">θ</span> <span class="o">=</span> <span class="n">θ</span> <span class="k">if</span> <span class="n">θ</span> <span class="k">else</span> <span class="n">pm</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="s2">&quot;θ&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
         <span class="n">z</span> <span class="o">=</span> <span class="n">pm</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="s2">&quot;z&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">θ</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="mi">512</span><span class="p">)</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">pm</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">observed</span><span class="o">=</span><span class="n">x</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">funnel</span>
 
-<span class="n">x_obs</span> <span class="o">=</span> <span class="n">pm</span><span class="o">.</span><span class="n">sample_prior_predictive</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">gen_funnel</span><span class="p">(</span><span class="n">θ</span><span class="o">=</span><span class="n">θ_true</span><span class="p">))</span><span class="o">.</span><span class="n">prior</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">x_obs</span> <span class="o">=</span> <span class="n">pm</span><span class="o">.</span><span class="n">sample_prior_predictive</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">gen_funnel</span><span class="p">(</span><span class="n">θ</span><span class="o">=</span><span class="n">θ_true</span><span class="p">,</span> <span class="n">rng_seeder</span><span class="o">=</span><span class="n">rng</span><span class="p">))</span><span class="o">.</span><span class="n">prior</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span>
 <span class="n">funnel</span> <span class="o">=</span> <span class="n">gen_funnel</span><span class="p">(</span><span class="n">x_obs</span><span class="p">)</span>
 <span class="n">prob</span> <span class="o">=</span> <span class="n">PyMCMuseProblem</span><span class="p">(</span><span class="n">funnel</span><span class="p">)</span>
 <span class="n">prob</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">x_obs</span>
@@ -564,7 +565,7 @@ div.rendered_html tbody tr:hover {
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-100%|██████████| 1010/1010 [00:27&lt;00:00, 36.40it/s]
+100%|██████████| 1010/1010 [00:28&lt;00:00, 35.20it/s]
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
