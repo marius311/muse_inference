@@ -1,7 +1,8 @@
-env
+env*
 .ipynb_checkpoints
 __pycache__
 docs/_build
 docs/.ipynb_checkpoints
 docs/*.ipynb
 *.code-workspace
+build

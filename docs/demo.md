@@ -8,9 +8,9 @@ jupyter:
       format_version: '1.3'
       jupytext_version: 1.13.6
   kernelspec:
-    display_name: Python 3 (MuseInference)
+    display_name: Python 3 (ipykernel)
     language: python
-    name: python3-museinference
+    name: python3
 ---
 
 # Demo
@@ -24,6 +24,8 @@ mpl.rcParams['figure.dpi'] = 110
 import sys
 sys.path.append("..")
 ```
+
+Sample text. $\mathcal{P}(x\,|\,\theta)$
 
 ```python
 import matplotlib.pyplot as plt
