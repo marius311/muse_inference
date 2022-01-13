@@ -11,3 +11,7 @@ code, pre {
 .rst-content .linenodiv pre, .rst-content div[class^=highlight] pre, .rst-content pre.literal-block {
   font-size: 14px;
 }
+
+.wy-nav-content {
+  max-width: 57rem;
+}
