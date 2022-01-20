@@ -17,8 +17,8 @@
         <script src="_static/underscore.js"></script>
         <script src="_static/doctools.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
         <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -43,9 +43,21 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Demo</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#With-numpy">With numpy</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#With-Jax">With Jax</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#With-PyMC">With PyMC</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#With-numpy">With numpy</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Scalar">Scalar</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Tuple">Tuple</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#With-Jax">With Jax</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id1">Scalar</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id2">Tuple</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#With-PyMC">With PyMC</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id3">Scalar</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id4">Tuple</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -352,7 +364,8 @@ div.rendered_html tbody tr:hover {
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
-<span class="kn">from</span> <span class="nn">muse_inference</span> <span class="kn">import</span> <span class="n">muse</span><span class="p">,</span> <span class="n">MuseProblem</span><span class="p">,</span> <span class="n">MuseResult</span>
+<span class="kn">import</span> <span class="nn">muse_inference</span>
+<span class="kn">from</span> <span class="nn">muse_inference</span> <span class="kn">import</span> <span class="n">MuseProblem</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 </pre></div>
 </div>
@@ -361,12 +374,14 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">θ_true</span> <span class="o">=</span> <span class="mi">1</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">θ_true</span> <span class="o">=</span> <span class="mf">1.</span>
 </pre></div>
 </div>
 </div>
 <section id="With-numpy">
 <h2>With numpy<a class="headerlink" href="#With-numpy" title="Permalink to this headline"></a></h2>
+<section id="Scalar">
+<h3>Scalar<a class="headerlink" href="#Scalar" title="Permalink to this headline"></a></h3>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
@@ -374,6 +389,7 @@ div.rendered_html tbody tr:hover {
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">NumpyFunnelMuseProblem</span><span class="p">(</span><span class="n">MuseProblem</span><span class="p">):</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">N</span> <span class="o">=</span> <span class="n">N</span>
 
     <span class="k">def</span> <span class="nf">sample_x_z</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rng</span><span class="p">,</span> <span class="n">θ</span><span class="p">):</span>
@@ -409,8 +425,7 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">result</span> <span class="o">=</span> <span class="n">MuseResult</span><span class="p">()</span>
-<span class="n">muse</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">prob</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">α</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="n">gradz_logLike_atol</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">progress</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">maxsteps</span><span class="o">=</span><span class="mi">10</span><span class="p">);</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">result</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">α</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="n">gradz_logLike_atol</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">progress</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">maxsteps</span><span class="o">=</span><span class="mi">10</span><span class="p">);</span>
 </pre></div>
 </div>
 </div>
@@ -419,7 +434,7 @@ div.rendered_html tbody tr:hover {
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-100%|██████████| 1010/1010 [00:01&lt;00:00, 762.06it/s]
+100%|██████████| 1010/1010 [00:01&lt;00:00, 1006.01it/s]
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
@@ -436,19 +451,50 @@ div.rendered_html tbody tr:hover {
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/demo_9_0.png" src="_images/demo_9_0.png" />
+<img alt="_images/demo_10_0.png" src="_images/demo_10_0.png" />
 </div>
 </div>
 </section>
-<section id="With-Jax">
-<h2>With Jax<a class="headerlink" href="#With-Jax" title="Permalink to this headline"></a></h2>
+<section id="Tuple">
+<h3>Tuple<a class="headerlink" href="#Tuple" title="Permalink to this headline"></a></h3>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">jax</span>
-<span class="kn">import</span> <span class="nn">jax.numpy</span> <span class="k">as</span> <span class="nn">jnp</span>
-<span class="kn">from</span> <span class="nn">muse_inference.jax</span> <span class="kn">import</span> <span class="n">JittedJaxMuseProblem</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">NumpyFunnelMuseProblem</span><span class="p">(</span><span class="n">MuseProblem</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">N</span> <span class="o">=</span> <span class="n">N</span>
+
+    <span class="k">def</span> <span class="nf">sample_x_z</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rng</span><span class="p">,</span> <span class="n">θ</span><span class="p">):</span>
+        <span class="p">(</span><span class="n">θ1</span><span class="p">,</span> <span class="n">θ2</span><span class="p">)</span> <span class="o">=</span> <span class="n">θ</span>
+        <span class="n">z1</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">θ1</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">z2</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">θ2</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">x1</span> <span class="o">=</span> <span class="n">z1</span> <span class="o">+</span> <span class="n">rng</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N</span><span class="p">)</span>
+        <span class="n">x2</span> <span class="o">=</span> <span class="n">z2</span> <span class="o">+</span> <span class="n">rng</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">((</span><span class="n">x1</span><span class="p">,</span><span class="n">x2</span><span class="p">),</span> <span class="p">(</span><span class="n">z1</span><span class="p">,</span><span class="n">z2</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">gradθ_logLike</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">θ</span><span class="p">):</span>
+        <span class="p">(</span><span class="n">θ1</span><span class="p">,</span> <span class="n">θ2</span><span class="p">)</span> <span class="o">=</span> <span class="n">θ</span>
+        <span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">)</span> <span class="o">=</span> <span class="n">x</span>
+        <span class="p">(</span><span class="n">z1</span><span class="p">,</span> <span class="n">z2</span><span class="p">)</span> <span class="o">=</span> <span class="n">z</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">z1</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">θ1</span><span class="p">))</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">N</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">z2</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">θ2</span><span class="p">))</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">N</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">logLike_and_gradz_logLike</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">θ</span><span class="p">):</span>
+        <span class="p">(</span><span class="n">θ1</span><span class="p">,</span> <span class="n">θ2</span><span class="p">)</span> <span class="o">=</span> <span class="n">θ</span>
+        <span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">)</span> <span class="o">=</span> <span class="n">x</span>
+        <span class="p">(</span><span class="n">z1</span><span class="p">,</span> <span class="n">z2</span><span class="p">)</span> <span class="o">=</span> <span class="n">z</span>
+        <span class="n">logLike</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">x1</span> <span class="o">-</span> <span class="n">z1</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">z1</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">θ1</span><span class="p">)</span> <span class="o">+</span> <span class="mi">512</span><span class="o">*</span><span class="n">θ1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">-</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">x2</span> <span class="o">-</span> <span class="n">z2</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">z2</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">θ2</span><span class="p">)</span> <span class="o">+</span> <span class="mi">512</span><span class="o">*</span><span class="n">θ2</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="n">gradz_logLike</span> <span class="o">=</span> <span class="p">(</span><span class="n">x1</span> <span class="o">-</span> <span class="n">z1</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">θ1</span><span class="p">)),</span> <span class="n">x2</span> <span class="o">-</span> <span class="n">z2</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">θ2</span><span class="p">)))</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">logLike</span><span class="p">,</span> <span class="n">gradz_logLike</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">gradθ_and_hessθ_logPrior</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">θ</span><span class="p">):</span>
+        <span class="p">(</span><span class="n">θ1</span><span class="p">,</span> <span class="n">θ2</span><span class="p">)</span> <span class="o">=</span> <span class="n">θ</span>
+        <span class="n">g</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="n">θ1</span><span class="o">/</span><span class="p">(</span><span class="mi">3</span><span class="o">**</span><span class="mi">2</span><span class="p">),</span> <span class="o">-</span><span class="n">θ2</span><span class="o">/</span><span class="p">(</span><span class="mi">3</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+        <span class="n">H</span> <span class="o">=</span> <span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="o">/</span><span class="mi">3</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+              <span class="p">(</span><span class="mi">0</span><span class="p">,</span>      <span class="o">-</span><span class="mi">1</span><span class="o">/</span><span class="mi">3</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">g</span><span class="p">,</span> <span class="n">H</span>
 </pre></div>
 </div>
 </div>
@@ -456,15 +502,76 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">prob</span> <span class="o">=</span> <span class="n">NumpyFunnelMuseProblem</span><span class="p">(</span><span class="mi">2048</span><span class="p">)</span>
+<span class="n">θ</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">5.</span><span class="p">)</span>
+<span class="n">x</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">sample_x_z</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">θ</span><span class="p">)</span>
+<span class="n">prob</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">x</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">result</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">θ</span><span class="p">,</span> <span class="n">α</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="n">gradz_logLike_atol</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">progress</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">maxsteps</span><span class="o">=</span><span class="mi">10</span><span class="p">);</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+100%|██████████| 1010/1010 [00:07&lt;00:00, 139.38it/s]
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">result</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s2">&quot;θ&quot;</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(-1.0629377565878193, 4.9796990924522655)
+</pre></div></div>
+</div>
+</section>
+</section>
+<section id="With-Jax">
+<h2>With Jax<a class="headerlink" href="#With-Jax" title="Permalink to this headline"></a></h2>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">jax</span>
+<span class="kn">import</span> <span class="nn">jax.numpy</span> <span class="k">as</span> <span class="nn">jnp</span>
+<span class="kn">from</span> <span class="nn">muse_inference.jax</span> <span class="kn">import</span> <span class="n">JittedJaxMuseProblem</span><span class="p">,</span> <span class="n">JaxMuseProblem</span>
+</pre></div>
+</div>
+</div>
+<section id="id1">
+<h3>Scalar<a class="headerlink" href="#id1" title="Permalink to this headline"></a></h3>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">JaxFunnelMuseProblem</span><span class="p">(</span><span class="n">JittedJaxMuseProblem</span><span class="p">):</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">N</span> <span class="o">=</span> <span class="n">N</span>
 
     <span class="k">def</span> <span class="nf">sample_x_z</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rng</span><span class="p">,</span> <span class="n">θ</span><span class="p">):</span>
         <span class="n">z</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">θ</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">z</span> <span class="o">+</span> <span class="n">rng</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N</span><span class="p">)</span>
-        <span class="k">return</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">z</span><span class="p">))</span>
 
     <span class="k">def</span> <span class="nf">logLike</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">θ</span><span class="p">):</span>
         <span class="k">return</span> <span class="o">-</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">x</span> <span class="o">-</span> <span class="n">z</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">jnp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">z</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">jnp</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">θ</span><span class="p">)</span> <span class="o">+</span> <span class="mi">512</span><span class="o">*</span><span class="n">θ</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
@@ -474,8 +581,8 @@ div.rendered_html tbody tr:hover {
 </pre></div>
 </div>
 </div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">prob</span> <span class="o">=</span> <span class="n">JaxFunnelMuseProblem</span><span class="p">(</span><span class="mi">512</span><span class="p">)</span>
@@ -485,78 +592,19 @@ div.rendered_html tbody tr:hover {
 </pre></div>
 </div>
 </div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">result</span> <span class="o">=</span> <span class="n">MuseResult</span><span class="p">()</span>
-<span class="n">muse</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">prob</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="n">α</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="n">gradz_logLike_atol</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">progress</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">maxsteps</span><span class="o">=</span><span class="mi">10</span><span class="p">);</span>
-</pre></div>
-</div>
-</div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-  0%|          | 0/1010 [00:00&lt;?, ?it/s]WARNING:absl:No GPU/TPU found, falling back to CPU. (Set TF_CPP_MIN_LOG_LEVEL=0 and rerun for more info.)
-100%|██████████| 1010/1010 [00:22&lt;00:00, 44.81it/s]
+WARNING:absl:No GPU/TPU found, falling back to CPU. (Set TF_CPP_MIN_LOG_LEVEL=0 and rerun for more info.)
 </pre></div></div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="n">h</span><span class="p">[</span><span class="s2">&quot;θ&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">history</span><span class="p">],</span> <span class="s2">&quot;.-&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;step&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;θ&quot;</span><span class="p">);</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<img alt="_images/demo_15_0.png" src="_images/demo_15_0.png" />
-</div>
-</div>
-</section>
-<section id="With-PyMC">
-<h2>With PyMC<a class="headerlink" href="#With-PyMC" title="Permalink to this headline"></a></h2>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pymc</span> <span class="k">as</span> <span class="nn">pm</span>
-<span class="kn">from</span> <span class="nn">muse_inference.pymc</span> <span class="kn">import</span> <span class="n">PyMCMuseProblem</span>
-</pre></div>
-</div>
-</div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">gen_funnel</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">θ</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rng_seeder</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="k">with</span> <span class="n">pm</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">rng_seeder</span><span class="o">=</span><span class="n">rng_seeder</span><span class="p">)</span> <span class="k">as</span> <span class="n">funnel</span><span class="p">:</span>
-        <span class="n">θ</span> <span class="o">=</span> <span class="n">θ</span> <span class="k">if</span> <span class="n">θ</span> <span class="k">else</span> <span class="n">pm</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="s2">&quot;θ&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
-        <span class="n">z</span> <span class="o">=</span> <span class="n">pm</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="s2">&quot;z&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">θ</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="mi">512</span><span class="p">)</span>
-        <span class="n">x</span> <span class="o">=</span> <span class="n">pm</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">observed</span><span class="o">=</span><span class="n">x</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">funnel</span>
-
-<span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-<span class="n">x_obs</span> <span class="o">=</span> <span class="n">pm</span><span class="o">.</span><span class="n">sample_prior_predictive</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">gen_funnel</span><span class="p">(</span><span class="n">θ</span><span class="o">=</span><span class="n">θ_true</span><span class="p">,</span> <span class="n">rng_seeder</span><span class="o">=</span><span class="n">rng</span><span class="p">))</span><span class="o">.</span><span class="n">prior</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span>
-<span class="n">funnel</span> <span class="o">=</span> <span class="n">gen_funnel</span><span class="p">(</span><span class="n">x_obs</span><span class="p">)</span>
-<span class="n">prob</span> <span class="o">=</span> <span class="n">PyMCMuseProblem</span><span class="p">(</span><span class="n">funnel</span><span class="p">)</span>
-<span class="n">prob</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">x_obs</span>
-</pre></div>
-</div>
 </div>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">result</span> <span class="o">=</span> <span class="n">MuseResult</span><span class="p">()</span>
-<span class="n">muse</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">prob</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="n">α</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="n">gradz_logLike_atol</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">progress</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">maxsteps</span><span class="o">=</span><span class="mi">10</span><span class="p">);</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">result</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="n">α</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="n">gradz_logLike_atol</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">progress</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">maxsteps</span><span class="o">=</span><span class="mi">10</span><span class="p">);</span>
 </pre></div>
 </div>
 </div>
@@ -565,13 +613,39 @@ div.rendered_html tbody tr:hover {
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-100%|██████████| 1010/1010 [00:40&lt;00:00, 24.98it/s]
+100%|██████████| 1010/1010 [00:14&lt;00:00, 67.83it/s]
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
 </pre></div>
 </div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">h</span><span class="p">[</span><span class="s2">&quot;θ&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">history</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[0.0,
+ DeviceArray(1.2127951, dtype=float32),
+ DeviceArray(1.0396029, dtype=float32),
+ DeviceArray(0.97261405, dtype=float32),
+ DeviceArray(0.952539, dtype=float32),
+ DeviceArray(0.94721234, dtype=float32),
+ DeviceArray(0.94585395, dtype=float32),
+ DeviceArray(0.94551116, dtype=float32),
+ DeviceArray(0.94534713, dtype=float32),
+ DeviceArray(0.9453871, dtype=float32)]
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="n">h</span><span class="p">[</span><span class="s2">&quot;θ&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">history</span><span class="p">],</span> <span class="s2">&quot;.-&quot;</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;step&quot;</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;θ&quot;</span><span class="p">);</span>
@@ -582,9 +656,310 @@ div.rendered_html tbody tr:hover {
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/demo_20_0.png" src="_images/demo_20_0.png" />
+<img alt="_images/demo_23_0.png" src="_images/demo_23_0.png" />
 </div>
 </div>
+</section>
+<section id="id2">
+<h3>Tuple<a class="headerlink" href="#id2" title="Permalink to this headline"></a></h3>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">JaxFunnelMuseProblem</span><span class="p">(</span><span class="n">muse_inference</span><span class="o">.</span><span class="n">jax</span><span class="o">.</span><span class="n">JittedJaxMuseProblem</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">N</span> <span class="o">=</span> <span class="n">N</span>
+
+    <span class="k">def</span> <span class="nf">sample_x_z</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rng</span><span class="p">,</span> <span class="n">θ</span><span class="p">):</span>
+        <span class="p">(</span><span class="n">θ1</span><span class="p">,</span> <span class="n">θ2</span><span class="p">)</span> <span class="o">=</span> <span class="p">(</span><span class="n">θ</span><span class="p">[</span><span class="s2">&quot;θ1&quot;</span><span class="p">],</span> <span class="n">θ</span><span class="p">[</span><span class="s2">&quot;θ2&quot;</span><span class="p">])</span>
+        <span class="n">z1</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">θ1</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">z2</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">θ2</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">x1</span> <span class="o">=</span> <span class="n">z1</span> <span class="o">+</span> <span class="n">rng</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N</span><span class="p">)</span>
+        <span class="n">x2</span> <span class="o">=</span> <span class="n">z2</span> <span class="o">+</span> <span class="n">rng</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">({</span><span class="s2">&quot;x1&quot;</span><span class="p">:</span><span class="n">x1</span><span class="p">,</span> <span class="s2">&quot;x2&quot;</span><span class="p">:</span><span class="n">x2</span><span class="p">},</span> <span class="p">{</span><span class="s2">&quot;z1&quot;</span><span class="p">:</span><span class="n">z1</span><span class="p">,</span> <span class="s2">&quot;z2&quot;</span><span class="p">:</span><span class="n">z2</span><span class="p">})</span>
+
+    <span class="k">def</span> <span class="nf">logLike</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">θ</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="o">-</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">x</span><span class="p">[</span><span class="s2">&quot;x1&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">z</span><span class="p">[</span><span class="s2">&quot;z1&quot;</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">jnp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">z</span><span class="p">[</span><span class="s2">&quot;z1&quot;</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">jnp</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">θ</span><span class="p">[</span><span class="s2">&quot;θ1&quot;</span><span class="p">])</span> <span class="o">+</span> <span class="mi">512</span><span class="o">*</span><span class="n">θ</span><span class="p">[</span><span class="s2">&quot;θ1&quot;</span><span class="p">])</span> <span class="o">/</span> <span class="mi">2</span>
+            <span class="o">-</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">x</span><span class="p">[</span><span class="s2">&quot;x2&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">z</span><span class="p">[</span><span class="s2">&quot;z2&quot;</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">jnp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">z</span><span class="p">[</span><span class="s2">&quot;z2&quot;</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">jnp</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">θ</span><span class="p">[</span><span class="s2">&quot;θ2&quot;</span><span class="p">])</span> <span class="o">+</span> <span class="mi">512</span><span class="o">*</span><span class="n">θ</span><span class="p">[</span><span class="s2">&quot;θ2&quot;</span><span class="p">])</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">logPrior</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">θ</span><span class="p">):</span>
+        <span class="k">return</span> <span class="o">-</span><span class="n">θ</span><span class="p">[</span><span class="s2">&quot;θ1&quot;</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="mi">3</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="n">θ</span><span class="p">[</span><span class="s2">&quot;θ2&quot;</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="mi">3</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">prob</span> <span class="o">=</span> <span class="n">JaxFunnelMuseProblem</span><span class="p">(</span><span class="mi">512</span><span class="p">)</span>
+<span class="n">θ</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;θ1&quot;</span><span class="p">:</span><span class="mf">1.</span><span class="p">,</span> <span class="s2">&quot;θ2&quot;</span><span class="p">:</span><span class="mf">2.</span><span class="p">}</span>
+<span class="n">x</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">sample_x_z</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">θ</span><span class="p">)</span>
+<span class="n">prob</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">x</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">result</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">θ</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span> <span class="n">gradz_logLike_atol</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">progress</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">maxsteps</span><span class="o">=</span><span class="mi">10</span><span class="p">);</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+100%|██████████| 1010/1010 [01:23&lt;00:00, 12.09it/s]
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">result</span><span class="o">.</span><span class="n">θ</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+{&#39;θ1&#39;: DeviceArray(1.0922196, dtype=float32),
+ &#39;θ2&#39;: DeviceArray(1.9329984, dtype=float32)}
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="n">h</span><span class="p">[</span><span class="s2">&quot;θ&quot;</span><span class="p">][</span><span class="s2">&quot;θ1&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">history</span><span class="p">],</span> <span class="s2">&quot;.-&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="n">h</span><span class="p">[</span><span class="s2">&quot;θ&quot;</span><span class="p">][</span><span class="s2">&quot;θ2&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">history</span><span class="p">],</span> <span class="s2">&quot;.-&quot;</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;step&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;θ&quot;</span><span class="p">);</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/demo_29_0.png" src="_images/demo_29_0.png" />
+</div>
+</div>
+</section>
+</section>
+<section id="With-PyMC">
+<h2>With PyMC<a class="headerlink" href="#With-PyMC" title="Permalink to this headline"></a></h2>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">pymc</span> <span class="k">as</span> <span class="nn">pm</span>
+<span class="kn">from</span> <span class="nn">muse_inference.pymc</span> <span class="kn">import</span> <span class="n">PyMCMuseProblem</span>
+</pre></div>
+</div>
+</div>
+<section id="id3">
+<h3>Scalar<a class="headerlink" href="#id3" title="Permalink to this headline"></a></h3>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># define</span>
+<span class="k">def</span> <span class="nf">gen_funnel</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">θ</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rng_seeder</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">with</span> <span class="n">pm</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">rng_seeder</span><span class="o">=</span><span class="n">rng_seeder</span><span class="p">)</span> <span class="k">as</span> <span class="n">funnel</span><span class="p">:</span>
+        <span class="n">θ</span> <span class="o">=</span> <span class="n">θ</span> <span class="k">if</span> <span class="n">θ</span> <span class="k">else</span> <span class="n">pm</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="s2">&quot;θ&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="n">pm</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="s2">&quot;z&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">θ</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="mi">512</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">pm</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">observed</span><span class="o">=</span><span class="n">x</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">funnel</span>
+
+<span class="c1"># generated simulated data</span>
+<span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">x_obs</span> <span class="o">=</span> <span class="n">pm</span><span class="o">.</span><span class="n">sample_prior_predictive</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">gen_funnel</span><span class="p">(</span><span class="n">θ</span><span class="o">=</span><span class="n">θ_true</span><span class="p">,</span> <span class="n">rng_seeder</span><span class="o">=</span><span class="n">rng</span><span class="p">))</span><span class="o">.</span><span class="n">prior</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span>
+
+<span class="c1"># set up problem</span>
+<span class="n">funnel</span> <span class="o">=</span> <span class="n">gen_funnel</span><span class="p">(</span><span class="n">x_obs</span><span class="p">)</span>
+<span class="n">prob</span> <span class="o">=</span> <span class="n">PyMCMuseProblem</span><span class="p">(</span><span class="n">funnel</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">result</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span> <span class="n">gradz_logLike_atol</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">progress</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">maxsteps</span><span class="o">=</span><span class="mi">10</span><span class="p">);</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+100%|██████████| 1010/1010 [00:34&lt;00:00, 29.67it/s]
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">h</span><span class="p">[</span><span class="s2">&quot;θ&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">history</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[0.0,
+ array([1.30363499]),
+ array([1.14695937]),
+ array([1.07392309]),
+ array([1.02450847]),
+ array([1.02850517]),
+ array([1.02980893]),
+ array([1.03023694]),
+ array([1.03037775]),
+ array([1.0304241])]
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="n">h</span><span class="p">[</span><span class="s2">&quot;θ&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">history</span><span class="p">],</span> <span class="s2">&quot;.-&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;step&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;θ&quot;</span><span class="p">);</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+/home/runner/.cache/pypoetry/virtualenvs/muse-inference-8TQ0v75b-py3.9/lib/python3.9/site-packages/numpy/core/shape_base.py:65: VisibleDeprecationWarning: Creating an ndarray from ragged nested sequences (which is a list-or-tuple of lists-or-tuples-or ndarrays with different lengths or shapes) is deprecated. If you meant to do this, you must specify &#39;dtype=object&#39; when creating the ndarray.
+  ary = asanyarray(ary)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/demo_36_1.png" src="_images/demo_36_1.png" />
+</div>
+</div>
+</section>
+<section id="id4">
+<h3>Tuple<a class="headerlink" href="#id4" title="Permalink to this headline"></a></h3>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[28]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># define</span>
+<span class="k">def</span> <span class="nf">gen_funnel</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span><span class="kc">None</span><span class="p">),</span> <span class="n">θ</span><span class="o">=</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span><span class="kc">None</span><span class="p">),</span> <span class="n">rng_seeder</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">N</span><span class="o">=</span><span class="mi">3</span><span class="p">):</span>
+    <span class="p">(</span><span class="n">α</span><span class="p">,</span> <span class="n">β</span><span class="p">)</span> <span class="o">=</span> <span class="n">θ</span>
+    <span class="k">with</span> <span class="n">pm</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">rng_seeder</span><span class="o">=</span><span class="n">rng_seeder</span><span class="p">)</span> <span class="k">as</span> <span class="n">funnel</span><span class="p">:</span>
+        <span class="n">α</span> <span class="o">=</span> <span class="n">pm</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="s2">&quot;α&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="k">if</span> <span class="n">α</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">α</span>
+        <span class="n">β</span> <span class="o">=</span> <span class="n">pm</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="s2">&quot;β&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="k">if</span> <span class="n">β</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">β</span>
+        <span class="n">z1</span> <span class="o">=</span> <span class="n">pm</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="s2">&quot;z1&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">α</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">N</span><span class="p">)</span>
+        <span class="n">z2</span> <span class="o">=</span> <span class="n">pm</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="s2">&quot;z2&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">β</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">N</span><span class="p">)</span>
+        <span class="n">x1</span> <span class="o">=</span> <span class="n">pm</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="s2">&quot;x1&quot;</span><span class="p">,</span> <span class="n">z1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">observed</span><span class="o">=</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">x2</span> <span class="o">=</span> <span class="n">pm</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="s2">&quot;x2&quot;</span><span class="p">,</span> <span class="n">z2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">observed</span><span class="o">=</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">funnel</span>
+
+<span class="c1"># generated simulated data</span>
+<span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">θ</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+<span class="n">prior</span> <span class="o">=</span> <span class="n">pm</span><span class="o">.</span><span class="n">sample_prior_predictive</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">gen_funnel</span><span class="p">(</span><span class="n">θ</span><span class="o">=</span><span class="n">θ</span><span class="p">,</span> <span class="n">rng_seeder</span><span class="o">=</span><span class="n">rng</span><span class="p">))</span><span class="o">.</span><span class="n">prior</span>
+<span class="n">x_obs</span> <span class="o">=</span> <span class="p">(</span><span class="n">prior</span><span class="o">.</span><span class="n">x1</span><span class="p">,</span> <span class="n">prior</span><span class="o">.</span><span class="n">x2</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[29]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># set up problem</span>
+<span class="n">funnel</span> <span class="o">=</span> <span class="n">gen_funnel</span><span class="p">(</span><span class="n">x_obs</span><span class="p">)</span>
+<span class="n">prob</span> <span class="o">=</span> <span class="n">PyMCMuseProblem</span><span class="p">(</span><span class="n">funnel</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[30]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">result</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">solve</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">),</span> <span class="n">α</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span> <span class="n">gradz_logLike_atol</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">progress</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">maxsteps</span><span class="o">=</span><span class="mi">10</span><span class="p">);</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+100%|██████████| 1010/1010 [01:29&lt;00:00, 11.28it/s]
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[31]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">h</span><span class="p">[</span><span class="s2">&quot;θ&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">history</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[31]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[(0, 0),
+ (-0.2815542650152186, 6.477243065481232),
+ (-0.5141747017993881, 6.117638105986346),
+ (-0.6918288059307816, 5.771206936941405),
+ (-0.8177009896792248, 5.439946228160347),
+ (-0.9018400316593392, 5.126349650147274),
+ (-0.9572251933169915, 4.833422582078036),
+ (-0.9973477714739579, 4.564419027380707),
+ (-1.0313059723290432, 4.322361248178538),
+ (-1.0403874945099805, 4.1095482019757394)]
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[32]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="n">h</span><span class="p">[</span><span class="s2">&quot;θ&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">history</span><span class="p">],</span> <span class="s2">&quot;.-&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="n">h</span><span class="p">[</span><span class="s2">&quot;θ&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">history</span><span class="p">],</span> <span class="s2">&quot;.-&quot;</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;step&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;θ&quot;</span><span class="p">);</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/demo_42_0.png" src="_images/demo_42_0.png" />
+</div>
+</div>
+</section>
 </section>
 </section>
 
