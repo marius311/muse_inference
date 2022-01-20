@@ -33,6 +33,9 @@ class PyMCMuseProblem(MuseProblem):
         self.θ_RVs = [var for var in model.basic_RVs if model_graph.get_parents(var) == set()]
         self.z_RVs = [var for var in model.free_RVs if var not in self.θ_RVs]
 
+        # create function for sampling given θ
+        self._sample_x_z = aesara.function(self.θ_RVs, self.x_RVs + self.z_RVs)
+
         # remove conditioning on observed variables so everything is free
         rvs_to_values, logpt = unconditioned_logpt(model)
 
@@ -47,35 +50,36 @@ class PyMCMuseProblem(MuseProblem):
         raveled_inputs = [rvs_to_values[v] for v in self.x_RVs] + [z_RVs_raveled, θ_RVs_raveled]
         dθlogpt = aesara.grad(raveled_logpt, wrt=θ_RVs_raveled)
         dzlogpt = aesara.grad(raveled_logpt, wrt=z_RVs_raveled)
-        self.dθlogp = aesara.function(raveled_inputs, dθlogpt)
-        self.logp_dzlogp = aesara.function(raveled_inputs, [raveled_logpt, dzlogpt])
+        self._dθlogp = aesara.function(raveled_inputs, dθlogpt)
+        self._logp_dzlogp = aesara.function(raveled_inputs, [raveled_logpt, dzlogpt])
         
-        # prior gradient and hessian
+        # create prior gradient and hessian in terms of the raveled z and θ
         logpriort = at.sum([logpt.sum() for (logpt, var) in zip(model.logpt(sum=False), model.basic_RVs) if var in self.θ_RVs])
         raveled_logpriort = aesara.clone_replace(logpriort, dict(zip(θ_RV_vals, θ_RVs_unraveled)))
         dlogpriort = aesara.grad(raveled_logpriort, wrt=θ_RVs_raveled)
         d2logpriort = aesara.gradient.hessian(raveled_logpriort, wrt=θ_RVs_raveled)
-        self.dlogprior_d2logprior = aesara.function([θ_RVs_raveled], [dlogpriort, d2logpriort])
+        self._dlogprior_d2logprior = aesara.function([θ_RVs_raveled], [dlogpriort, d2logpriort])
+
 
     def sample_x_z(self, rng, θ):
         self.model.rng_seeder = rng
         for rng in self.model.rng_seq:
-            state = self.model.next_rng().get_value().get_state()
+            state = self.model.next_rng().get_value(borrow=True).get_state()
             self.model.rng_seq.pop() # the call to next_rng undesiredly (for this) added it to rng_seq
             rng.get_value(borrow=True).set_state(state)
-        x_z = aesara.function(self.θ_RVs, self.x_RVs + self.z_RVs)(*np.atleast_1d(θ))
-        x, z = (x_z[:len(self.x_RVs)], x_z[len(self.x_RVs):])
+        x_z = self._sample_x_z(*np.atleast_1d(θ))
+        (x, z) = (x_z[:len(self.x_RVs)], x_z[len(self.x_RVs):])
         ravel = self.ravel_unravel(z)[0]
         return (x, ravel(z))
 
     def gradθ_logLike(self, x, z, θ):
-        return self.dθlogp(*x, z, np.atleast_1d(θ))
+        return self._dθlogp(*x, z, np.atleast_1d(θ))
 
     def logLike_and_gradz_logLike(self, x, z, θ):
-        return self.logp_dzlogp(*x, z, np.atleast_1d(θ))
+        return self._logp_dzlogp(*x, z, np.atleast_1d(θ))
 
     def gradθ_and_hessθ_logPrior(self, θ):
-        return self.dlogprior_d2logprior(np.atleast_1d(θ))
+        return self._dlogprior_d2logprior(np.atleast_1d(θ))
 
     def ravel_unravel_RVs(self, RVs, name):
         RVs_raveled = at.vector(name=name)
