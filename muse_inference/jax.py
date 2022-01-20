@@ -3,11 +3,17 @@ from functools import partial
 
 import jax
 from jax.scipy.optimize import minimize
+from jax.numpy import concatenate, atleast_1d, atleast_2d
+from jax.flatten_util import ravel_pytree
 
 from . import MuseProblem
 
 
 class JaxMuseProblem(MuseProblem):
+
+    def __init__(self):
+        super().__init__()
+        self.np = jax.numpy
 
     def logLike(self, x, z, θ):
         raise NotImplementedError()
@@ -24,13 +30,19 @@ class JaxMuseProblem(MuseProblem):
         return (logLike, gradz_logLike)
 
     def zMAP_at_θ(self, x, z0, θ, gradz_logLike_atol=None):
-        soln = minimize(lambda z: -self.logLike(x, z, θ), z0, method="BFGS", tol=gradz_logLike_atol)
-        return (soln.x, soln)
+        ravel, unravel = self.ravel_unravel(z0)
+        soln = minimize(lambda z_vec: -self.logLike(x, unravel(z_vec), θ), ravel(z0), method="BFGS", tol=gradz_logLike_atol)
+        return (unravel(soln.x), soln)
 
-    def grad_hess_θ_logPrior(self, θ):
+    def gradθ_and_hessθ_logPrior(self, θ):
         g = jax.grad(self.logPrior)(θ)
         H = jax.hessian(self.logPrior)(θ)
         return (g,H)
+
+    def ravel_unravel(self, x):
+        ravel = lambda x_tree: ravel_pytree(x_tree)[0]
+        unravel = ravel_pytree(x)[1]
+        return (ravel, unravel)
 
 
 class JittedJaxMuseProblem(JaxMuseProblem):
@@ -48,5 +60,5 @@ class JittedJaxMuseProblem(JaxMuseProblem):
         return super().zMAP_at_θ(x, z0, θ, gradz_logLike_atol)
 
     @partial(jax.jit, static_argnums=(0,))
-    def grad_hess_θ_logPrior(self, θ):
-        return super().grad_hess_θ_logPrior(θ)
+    def gradθ_and_hessθ_logPrior(self, θ):
+        return super().gradθ_and_hessθ_logPrior(θ)
