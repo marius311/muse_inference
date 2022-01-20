@@ -9,7 +9,7 @@ import numpy as np
 import scipy.stats as st
 
 import pymc as pm
-from pymc.distributions import logpt as joint_logpt
+from pymc.distributions import joint_logpt
 
 from . import MuseProblem
 
@@ -51,7 +51,7 @@ class PyMCMuseProblem(MuseProblem):
         self.logp_dzlogp = aesara.function(raveled_inputs, [raveled_logpt, dzlogpt])
         
         # prior gradient and hessian
-        logpriort = at.sum([logpt.sum() for (logpt, var) in zip(model.logp_elemwiset(), model.basic_RVs) if var in self.θ_RVs])
+        logpriort = at.sum([logpt.sum() for (logpt, var) in zip(model.logpt(sum=False), model.basic_RVs) if var in self.θ_RVs])
         raveled_logpriort = aesara.clone_replace(logpriort, dict(zip(θ_RV_vals, θ_RVs_unraveled)))
         dlogpriort = aesara.grad(raveled_logpriort, wrt=θ_RVs_raveled)
         d2logpriort = aesara.gradient.hessian(raveled_logpriort, wrt=θ_RVs_raveled)

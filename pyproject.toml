@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "muse_inference"
+version = "0.1.0"
+description = ""
+authors = ["Marius Millea <mariusmillea@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = ">=3.9,<3.11"
+scipy = "^1.7.3"
+numpy = ">=1.15.0,<1.22.0"
+pymc = "4.0.0b2"
+jax = "^0.2.27"
+tqdm = "^4.62.3"
+jaxlib = "^0.1.75"
+
+[tool.poetry.dev-dependencies]
+jupytext = "^1.13.6"
+ipython = "^8.0.1"
+Sphinx = "^4.4.0"
+nbsphinx = "^0.8.8"
+pytest = "^6.2.5"
+sphinx-rtd-theme = "^1.0.0"
+ipykernel = "^6.7.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
