@@ -35,7 +35,7 @@ class MuseProblem():
         def objective(z_vec):
             logLike, gradz_logLike = self.logLike_and_gradz_logLike(x, unravel(z_vec), θ)
             return (-logLike, -ravel(gradz_logLike))
-        soln = minimize(objective, ravel(z0), method='L-BFGS-B', jac=True, tol=gradz_logLike_atol)
+        soln = minimize(objective, ravel(z0), method='L-BFGS-B', jac=True, options=dict(gtol=gradz_logLike_atol))
         return (unravel(soln.x), soln)
 
     def ravel_unravel(self, x):

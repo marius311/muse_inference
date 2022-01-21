@@ -17,12 +17,9 @@ jupyter:
 
 ```python tags=[] nbsphinx="hidden"
 %matplotlib inline
-import matplotlib as mpl
-mpl.rcParams['figure.dpi'] = 110
+%config InlineBackend.print_figure_kwargs = {'bbox_inches': 'tight', 'dpi': 110}
 %load_ext autoreload
 %autoreload 2
-import sys
-sys.path.append("..")
 ```
 
 Sample text. $\mathcal{P}(x\,|\,\theta)$

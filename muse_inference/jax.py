@@ -34,7 +34,7 @@ class JaxMuseProblem(MuseProblem):
         soln = minimize(
             lambda z_vec: -self.logLike(x, unravel(z_vec), θ), ravel(z0), 
             method="l-bfgs-experimental-do-not-rely-on-this", 
-            tol=gradz_logLike_atol
+            options=dict(gtol=gradz_logLike_atol),
         )
         return (unravel(soln.x), soln)
 
