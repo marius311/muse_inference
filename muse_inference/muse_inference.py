@@ -74,7 +74,8 @@ class MuseProblem():
         H_inv_update = "sims",
         broyden_memory = -1,
         checkpoint_filename = None,
-        get_covariance = False
+        get_covariance = False,
+        save_zMAP_history = False
     ):
 
         np = self.np
@@ -86,12 +87,13 @@ class MuseProblem():
         if z0 is None:
             z0 = self.sample_x_z(copy(rng), θ_start)[1]
 
+        zMAP_history_dat = zMAP_history_sims = None
         θunreg = θ = θ_start
 
         is_scalar_θ = isinstance(θ, Number)
         ravel, unravel = self.ravel_unravel(θ)
         Nθ = 1 if is_scalar_θ else len(ravel(θ))
-
+        
         result.rng = _rng = copy(rng)
         xz_sims = [self.sample_x_z(_rng, θ) for i in range(nsims)]
         xs    = [self.x] + [x for (x,_) in xz_sims]
@@ -125,7 +127,7 @@ class MuseProblem():
                 g_zMAPs = list(pmap(get_MAPs, xs, zMAPs, [θ]*(nsims+1)))
 
                 zMAPs = [zMAP for (_,zMAP,_) in g_zMAPs]
-                zMAP_history_dat, *zMAP_history_sims = [history for (_,_,history) in g_zMAPs]
+                if save_zMAP_history: zMAP_history_dat, *zMAP_history_sims = [history for (_,_,history) in g_zMAPs]
                 g_like_dat, *g_like_sims = [g for (g,_,_) in g_zMAPs]
                 g_like = g_like_dat - np.mean(np.stack(g_like_sims), axis=0)
                 g_prior, H_prior = self.gradθ_and_hessθ_logPrior(θ)

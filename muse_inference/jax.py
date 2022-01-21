@@ -31,7 +31,11 @@ class JaxMuseProblem(MuseProblem):
 
     def zMAP_at_θ(self, x, z0, θ, gradz_logLike_atol=None):
         ravel, unravel = self.ravel_unravel(z0)
-        soln = minimize(lambda z_vec: -self.logLike(x, unravel(z_vec), θ), ravel(z0), method="BFGS", tol=gradz_logLike_atol)
+        soln = minimize(
+            lambda z_vec: -self.logLike(x, unravel(z_vec), θ), ravel(z0), 
+            method="l-bfgs-experimental-do-not-rely-on-this", 
+            tol=gradz_logLike_atol
+        )
         return (unravel(soln.x), soln)
 
     def gradθ_and_hessθ_logPrior(self, θ):
