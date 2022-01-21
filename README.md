@@ -9,7 +9,7 @@ Marginal unbiased score expansion (MUSE) estimation in Python, with interfaces t
 ## Install
 
 ```
-poetry add git+https://github.com/marius311/muse_inference.git
+poetry add git+https://github.com/marius311/muse_inference.git@main
 ```
 or
 ```
