@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "profile"
+version = "0.1.0"
+description = ""
+authors = ["marius <mariusmillea@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = ">=3.7,<3.11"
+muse-inference = {path = "..", develop = true}
+jax = "^0.2.27"
+pymc = "4.0.0b2"
+numpy = ">=1.15.0,<1.22.0"
+julia = "^0.5.7"
+ipykernel = "^6.7.0"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

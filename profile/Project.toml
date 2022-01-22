@@ -1,0 +1,4 @@
+[deps]
+MuseInference = "43b88160-90c7-4f71-933b-9d65205cd921"
+Turing = "fce5fe82-541a-59a6-adf8-730c64b5f9a0"
+Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
