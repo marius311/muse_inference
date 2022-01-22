@@ -7,9 +7,27 @@ from numbers import Number
 from time import thread_time
 
 import numpy as np
-from numpy.random import RandomState
+from numpy.random import SeedSequence, default_rng
 from scipy.optimize import minimize
 from tqdm import tqdm
+
+
+
+class MuseResult():
+
+    def __init__(self):
+        self.θ = None
+        self.H = None
+        self.J = None
+        self.Σ_inv = None
+        self.Σ = None
+        self.dist = None
+        self.history = []
+        self.gs = []
+        self.Hs = []
+        self.rng = None
+        self.time = 0
+
 
 
 class MuseProblem():
@@ -56,8 +74,8 @@ class MuseProblem():
             ravel = unravel = lambda x: x
         return (ravel, unravel)
 
-    def _split_rng(self, rng: np.random.SeedSequence, N):
-        return [np.random.default_rng(s) for s in copy(rng).spawn(N)]
+    def _split_rng(self, rng: SeedSequence, N):
+        return [default_rng(s) for s in copy(rng).spawn(N)]
 
     def solve(
         self,
@@ -86,7 +104,7 @@ class MuseProblem():
         if result is None:
             result = MuseResult()
         if rng is None:
-            rng = RandomState()
+            rng = SeedSequence()
         if z0 is None:
             z0 = self.sample_x_z(self._split_rng(rng,1)[0], θ_start)[1]
 
@@ -101,8 +119,7 @@ class MuseProblem():
         xs    = [self.x] + [x for (x,_) in xz_sims]
         zMAPs = [z0]     + [z for (_,z) in xz_sims]
 
-        if progress: 
-            pbar = tqdm(total=(maxsteps-len(result.history))*(nsims+1))
+        pbar = tqdm(total=(maxsteps-len(result.history))*(nsims+1)) if progress else None
 
         try:
             
@@ -125,7 +142,7 @@ class MuseProblem():
                     g = ravel(self.gradθ_logLike(x, zMAP, θ))
                     if progress: pbar.update()
                     return (g, zMAP, history)
-                    
+
                 g_zMAPs = list(pmap(get_MAPs, zip(xs, zMAPs, [θ]*(nsims+1))))
 
                 zMAPs = [zMAP for (_,zMAP,_) in g_zMAPs]
@@ -159,24 +176,59 @@ class MuseProblem():
         finally:
             if progress: pbar.close()
 
-        result.θ = θ    
+        result.θ = θunreg
+        result.gs = g_like_sims
+
+        if get_covariance:
+            self.get_J(result=result, gradz_logLike_atol=gradz_logLike_atol, pmap=pmap, progress=progress)
 
         return result
 
 
+    def get_J(
+        self,
+        result = None,
+        θ = None,
+        gradz_logLike_atol = 1e-1,
+        rng = None,
+        nsims = 100, 
+        pmap = map,
+        progress = False, 
+        skip_errors = False,
+        # covariance_method = LinearShrinkage(target=DiagonalCommonVariance(), shrinkage=:rblw),
+    ):
 
-class MuseResult():
+        if result is None:
+            result = MuseResult()
+        if rng is None:
+            rng = SeedSequence()
+        if θ is None:
+            θ = result.θ
 
-    def __init__(self):
-        self.θ = None
-        self.H = None
-        self.J = None
-        self.Σ_inv = None
-        self.Σ = None
-        self.dist = None
-        self.history = []
-        self.gs = []
-        self.Hs = []
-        self.rng = None
-        self.time = 0
+        nsims_remaining = nsims - len(result.gs)
 
+        if nsims_remaining > 0:
+
+            if progress: 
+                pbar = tqdm(total=nsims_remaining)
+
+            xz_sims = [self.sample_x_z(_rng, θ) for _rng in self._split_rng(rng, nsims)]
+
+            def get_g(x_z):
+                try:
+                    x, z = x_z
+                    zMAP = self.zMAP_at_θ(x, z, θ, gradz_logLike_atol=gradz_logLike_atol)[0]
+                    g = self.gradθ_logLike(x, zMAP, θ)
+                    if progress: pbar.update()
+                    return g
+                except Exception:
+                    if skip_errors:
+                        return None
+                    else:
+                        raise
+
+            result.gs.extend(filter(None, pmap(get_g, xz_sims)))
+
+        return result
+        # result.J = (θ₀ isa Number) ? var(result.gs) : cov(covariance_method, identity.(result.gs))
+        # finalize_result!(result, prob)
