@@ -97,7 +97,7 @@ class MuseProblem():
         ravel, unravel = self._ravel_unravel(θ)
         Nθ = 1 if is_scalar_θ else len(ravel(θ))
         
-        xz_sims = [self.sample_x_z(_rng, θ) for _rng in self._split_rng(rng,nsims)]
+        xz_sims = [self.sample_x_z(_rng, θ) for _rng in self._split_rng(rng, nsims)]
         xs    = [self.x] + [x for (x,_) in xz_sims]
         zMAPs = [z0]     + [z for (_,z) in xz_sims]
 
@@ -119,13 +119,14 @@ class MuseProblem():
                         break
 
                 # MUSE gradient
-                def get_MAPs(x, zMAP_prev, θ):
+                def get_MAPs(args):
+                    x, zMAP_prev, θ = args
                     (zMAP, history) = self.zMAP_at_θ(x, zMAP_prev, θ, gradz_logLike_atol=gradz_logLike_atol)
                     g = ravel(self.gradθ_logLike(x, zMAP, θ))
                     if progress: pbar.update()
                     return (g, zMAP, history)
                     
-                g_zMAPs = list(pmap(get_MAPs, xs, zMAPs, [θ]*(nsims+1)))
+                g_zMAPs = list(pmap(get_MAPs, zip(xs, zMAPs, [θ]*(nsims+1))))
 
                 zMAPs = [zMAP for (_,zMAP,_) in g_zMAPs]
                 if save_zMAP_history: zMAP_history_dat, *zMAP_history_sims = [history for (_,_,history) in g_zMAPs]

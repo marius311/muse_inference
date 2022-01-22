@@ -7,7 +7,7 @@ authors = ["Marius Millea <mariusmillea@gmail.com>"]
 [tool.poetry.dependencies]
 python = ">=3.7,<3.11"
 scipy = "^1.4.1"
-numpy = ">=1.15.0,<1.22.0"
+numpy = ">=1.17.0,<1.22.0"
 pymc = "4.0.0b2"
 jax = "^0.2.14"
 tqdm = "^4"
