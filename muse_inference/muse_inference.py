@@ -31,14 +31,14 @@ class MuseProblem():
         return (0,0)
 
     def zMAP_at_θ(self, x, z0, θ, gradz_logLike_atol=None):
-        ravel, unravel = self.ravel_unravel(z0)
+        ravel, unravel = self._ravel_unravel(z0)
         def objective(z_vec):
             logLike, gradz_logLike = self.logLike_and_gradz_logLike(x, unravel(z_vec), θ)
             return (-logLike, -ravel(gradz_logLike))
         soln = minimize(objective, ravel(z0), method='L-BFGS-B', jac=True, options=dict(gtol=gradz_logLike_atol))
         return (unravel(soln.x), soln)
 
-    def ravel_unravel(self, x):
+    def _ravel_unravel(self, x):
         if isinstance(x, (tuple,list)):
             np = self.np
             i = 0
@@ -55,6 +55,9 @@ class MuseProblem():
         else:
             ravel = unravel = lambda x: x
         return (ravel, unravel)
+
+    def _split_rng(self, rng: np.random.SeedSequence, N):
+        return [np.random.default_rng(s) for s in copy(rng).spawn(N)]
 
     def solve(
         self,
@@ -85,17 +88,16 @@ class MuseProblem():
         if rng is None:
             rng = RandomState()
         if z0 is None:
-            z0 = self.sample_x_z(copy(rng), θ_start)[1]
+            z0 = self.sample_x_z(self._split_rng(rng,1)[0], θ_start)[1]
 
         zMAP_history_dat = zMAP_history_sims = None
         θunreg = θ = θ_start
 
         is_scalar_θ = isinstance(θ, Number)
-        ravel, unravel = self.ravel_unravel(θ)
+        ravel, unravel = self._ravel_unravel(θ)
         Nθ = 1 if is_scalar_θ else len(ravel(θ))
         
-        result.rng = _rng = copy(rng)
-        xz_sims = [self.sample_x_z(_rng, θ) for i in range(nsims)]
+        xz_sims = [self.sample_x_z(_rng, θ) for _rng in self._split_rng(rng,nsims)]
         xs    = [self.x] + [x for (x,_) in xz_sims]
         zMAPs = [z0]     + [z for (_,z) in xz_sims]
 
@@ -109,8 +111,7 @@ class MuseProblem():
                 t0 = datetime.now()
 
                 if i > 1:
-                    _rng = copy(rng)
-                    xs = [self.x] + [self.sample_x_z(_rng, θ)[0] for i in range(nsims)]
+                    xs = [self.x] + [self.sample_x_z(_rng, θ)[0] for _rng in self._split_rng(rng,nsims)]
 
                 if i > 2:
                     Δθ = ravel(result.history[-1]["θ"]) - ravel(result.history[-2]["θ"])

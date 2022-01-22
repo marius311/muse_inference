@@ -2,6 +2,8 @@
 # adapted from https://github.com/junpenglao/Planet_Sakaar_Data_Science/blob/main/PyMC3QnA/discourse_8528%20(MUSE).ipynb
 # special thanks to Junpeng Lao
 
+from copy import copy
+
 import aesara
 import aesara.tensor as at
 import arviz as az
@@ -41,9 +43,9 @@ class PyMCMuseProblem(MuseProblem):
 
         # create variables for the raveled versions of all the z and θ variables
         z_RV_vals = [rvs_to_values[v] for v in self.z_RVs]
-        z_RVs_raveled, z_RVs_unraveled = self.ravel_unravel_RVs(z_RV_vals, "z_raveled")
+        z_RVs_raveled, z_RVs_unraveled = self._ravel_unravel_RVs(z_RV_vals, "z_raveled")
         θ_RV_vals = [rvs_to_values[v] for v in self.θ_RVs]
-        θ_RVs_raveled, θ_RVs_unraveled = self.ravel_unravel_RVs(θ_RV_vals, "θ_raveled")
+        θ_RVs_raveled, θ_RVs_unraveled = self._ravel_unravel_RVs(θ_RV_vals, "θ_raveled")
         
         # create likelihood function and gradients in terms of the raveled z and θ
         raveled_logpt = aesara.clone_replace(logpt, dict(zip(z_RV_vals+θ_RV_vals, z_RVs_unraveled+θ_RVs_unraveled)))
@@ -69,7 +71,7 @@ class PyMCMuseProblem(MuseProblem):
             rng.get_value(borrow=True).set_state(state)
         x_z = self._sample_x_z(*np.atleast_1d(θ))
         (x, z) = (x_z[:len(self.x_RVs)], x_z[len(self.x_RVs):])
-        ravel = self.ravel_unravel(z)[0]
+        ravel = self._ravel_unravel(z)[0]
         return (x, ravel(z))
 
     def gradθ_logLike(self, x, z, θ):
@@ -81,7 +83,7 @@ class PyMCMuseProblem(MuseProblem):
     def gradθ_and_hessθ_logPrior(self, θ):
         return self._dlogprior_d2logprior(np.atleast_1d(θ))
 
-    def ravel_unravel_RVs(self, RVs, name):
+    def _ravel_unravel_RVs(self, RVs, name):
         RVs_raveled = at.vector(name=name)
         test_point = self.model.recompute_initial_point()
         RVs_val = [test_point[v.name] for v in RVs]
@@ -91,7 +93,8 @@ class PyMCMuseProblem(MuseProblem):
             RVs_unraveled.append(at.reshape(RVs_raveled[split_point[i]:split_point[i+1]], val.shape))
         return RVs_raveled, RVs_unraveled
 
-
+    def _split_rng(self, rng: np.random.SeedSequence, N):
+        return [np.random.RandomState(s) for s in copy(rng).generate_state(N)]
 
 
 def unconditioned_logpt(model, jacobian: bool = True):

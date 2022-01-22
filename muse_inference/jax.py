@@ -30,7 +30,7 @@ class JaxMuseProblem(MuseProblem):
         return (logLike, gradz_logLike)
 
     def zMAP_at_θ(self, x, z0, θ, gradz_logLike_atol=None):
-        ravel, unravel = self.ravel_unravel(z0)
+        ravel, unravel = self._ravel_unravel(z0)
         soln = minimize(
             lambda z_vec: -self.logLike(x, unravel(z_vec), θ), ravel(z0), 
             method="l-bfgs-experimental-do-not-rely-on-this", 
@@ -43,10 +43,13 @@ class JaxMuseProblem(MuseProblem):
         H = jax.hessian(self.logPrior)(θ)
         return (g,H)
 
-    def ravel_unravel(self, x):
+    def _ravel_unravel(self, x):
         ravel = lambda x_tree: ravel_pytree(x_tree)[0]
         unravel = ravel_pytree(x)[1]
         return (ravel, unravel)
+
+    def _split_rng(self, key, N):
+        return jax.random.split(key, N)
 
 
 class JittedJaxMuseProblem(JaxMuseProblem):

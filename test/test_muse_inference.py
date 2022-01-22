@@ -99,7 +99,7 @@ def test_ravel_numpy():
 
     result = prob.solve(θ_start=θ_start, rng=rng, gradz_logLike_atol=1e-4, maxsteps=40)
 
-    ravel = prob.ravel_unravel(θ_true)[0]
+    ravel = prob._ravel_unravel(θ_true)[0]
 
     assert isinstance(result.θ, tuple)
     assert np.linalg.norm(ravel(result.θ) - ravel(θ_true)) < 0.2
@@ -175,6 +175,6 @@ def test_ravel_jax():
 
     result = prob.solve(θ_start=θ_start, rng=rng, gradz_logLike_atol=1e-4, maxsteps=10)
 
-    ravel = prob.ravel_unravel(θ_true)[0]
+    ravel = prob._ravel_unravel(θ_true)[0]
     assert isinstance(result.θ, dict)
     assert np.linalg.norm(ravel(result.θ) - ravel(θ_true)) < 0.2
