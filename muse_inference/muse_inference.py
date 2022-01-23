@@ -246,7 +246,7 @@ class MuseProblem():
                     else:
                         raise
 
-            result.gs.extend(filter(None, pmap(get_g, xz_sims)))
+            result.gs.extend(g for g in pmap(get_g, xz_sims) if g is not None)
 
             result.time += datetime.now() - t0
 
@@ -317,8 +317,7 @@ class MuseProblem():
                         raise
 
             x_zMAPfid_rngs = zip([x for (x,_) in xz_sims], zMAPs_fid, self._split_rng(rng, nsims))
-            result.Hs.extend(map(getH, x_zMAPfid_rngs))
-            # result.Hs.extend(filter(None, map(getH, x_zMAPfid_rngs)))
+            result.Hs.extend(H for H in map(getH, x_zMAPfid_rngs) if H is not None)
             
             result.time += datetime.now() - t0
 

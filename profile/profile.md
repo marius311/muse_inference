@@ -127,7 +127,7 @@ prob = PyMCMuseProblem(funnel)
 rng = np.random.RandomState(0)
 (x, z) = prob.sample_x_z(rng, θ_true)
 prob.x = x
-t_pymc = timeit.timeit("prob.solve(θ_start=θ_start, rng=np.random.SeedSequence(0), θ_rtol=0, gradz_logLike_atol=1, progress=False, maxsteps=10)", globals=globals(), number=15)
+t_pymc = timeit.timeit("prob.solve(θ_start=θ_start, rng=np.random.SeedSequence(0), θ_rtol=0, gradz_logLike_atol=1e-2, progress=False, maxsteps=10)", globals=globals(), number=15)
 ```
 
 # Turing
@@ -146,8 +146,8 @@ model = funnel() | (;x);
 Turing.setadbackend(:zygote)
 ```
 
-```python
-t_turing = %julia 10 * @belapsed muse(model, py"θ_start"; θ_rtol=0, maxsteps=10, get_covariance=false, ∇z_logLike_atol=1e-1)
+```pythons
+t_turing = %julia 10 * @belapsed muse(model, py"θ_start"; θ_rtol=0, maxsteps=10, get_covariance=false, ∇z_logLike_atol=1e-2)
 ```
 
 # Zygote
@@ -171,7 +171,7 @@ prob = MuseProblem(
 ```
 
 ```python
-t_zygote = %julia 10 * @belapsed muse(prob, py"θ_start"; θ_rtol=0, maxsteps=10, get_covariance=false, ∇z_logLike_atol=1e-1)
+t_zygote = %julia 10 * @belapsed muse(prob, py"θ_start"; θ_rtol=0, maxsteps=10, get_covariance=false, ∇z_logLike_atol=1e-2)
 ```
 
 # Make plot
