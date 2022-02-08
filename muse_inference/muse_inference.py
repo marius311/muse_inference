@@ -31,9 +31,14 @@ class MuseResult():
         self.time = timedelta(0)
 
     def finalize(self, prob):
-        if self.J is not None and self.H is not None:
-            H_prior = prob.gradθ_and_hessθ_logPrior(self.θ)[1]
-            self.Σ_inv = self.H.T @ np.linalg.inv(self.J) @ self.H + H_prior
+        if self.J is not None and self.H is not None and self.θ is not None:
+
+            is_scalar_θ = isinstance(self.θ, Number)
+            ravel, unravel = prob._ravel_unravel(self.θ)
+            Nθ = 1 if is_scalar_θ else len(ravel(self.θ))
+
+            H_prior = ravel(prob.gradθ_and_hessθ_logPrior(self.θ)[1]).reshape(Nθ,Nθ)
+            self.Σ_inv = self.H.T @ np.linalg.inv(self.J) @ self.H - H_prior
             self.Σ = np.linalg.inv(self.Σ_inv)
             if self.θ is not None:
                 if isinstance(self.θ, Number):
@@ -125,7 +130,7 @@ class MuseProblem():
             z0 = self.sample_x_z(self._split_rng(rng,1)[0], θ_start)[1]
 
         zMAP_history_dat = zMAP_history_sims = None
-        θunreg = θ = θ_start
+        θunreg = θ = result.θ if result.θ is not None else θ_start
 
         is_scalar_θ = isinstance(θ, Number)
         ravel, unravel = self._ravel_unravel(θ)
@@ -148,7 +153,7 @@ class MuseProblem():
 
                 if i > 2:
                     Δθ = ravel(result.history[-1]["θ"]) - ravel(result.history[-2]["θ"])
-                    if np.sqrt(-np.inner(Δθ, np.inner(H_inv_post, Δθ))) < θ_rtol:
+                    if np.sqrt(-np.inner(Δθ, np.inner(result.history[-1]["H_inv_post"], Δθ))) < θ_rtol:
                         break
 
                 # MUSE gradient
@@ -193,7 +198,7 @@ class MuseProblem():
             if progress: pbar.close()
 
         result.θ = θunreg
-        result.gs = g_like_sims
+        result.gs = result.history[-1]["g_like_sims"]
         result.time = sum((h["t"] for h in result.history), start=result.time)
 
         if get_covariance:
@@ -231,7 +236,7 @@ class MuseProblem():
 
             ravel, unravel = self._ravel_unravel(θ)
 
-            xz_sims = [self.sample_x_z(_rng, θ) for _rng in self._split_rng(rng, nsims)]
+            xz_sims = [self.sample_x_z(_rng, θ) for _rng in self._split_rng(rng, nsims_remaining)]
 
             def get_g(x_z):
                 try:
@@ -281,7 +286,7 @@ class MuseProblem():
         
         nsims_remaining = nsims - len(result.Hs)
 
-        if (nsims_remaining > 0):
+        if nsims_remaining > 0:
                 
             pbar = tqdm(total=nsims_remaining*(2*Nθ+1), desc="get_H") if progress else None
             t0 = datetime.now()
@@ -289,7 +294,7 @@ class MuseProblem():
             ravel, unravel = self._ravel_unravel(θ)
 
             # generate simulations
-            xz_sims = [self.sample_x_z(_rng, θ) for _rng in self._split_rng(rng, nsims)]
+            xz_sims = [self.sample_x_z(_rng, θ) for _rng in self._split_rng(rng, nsims_remaining)]
 
             # initial fit at fiducial, used at starting points for finite difference below
             def get_zMAP(x_z):
