@@ -2,14 +2,13 @@
 import numpy as np
 
 def pjacobian(f, x, ε, pmap=map, pbar=None):
-    
+
     def column(i):
     
         def v(ε):
-            xi = x[i]
-            x[i] = xi + ε
-            v = f(x)
-            x[i] = xi
+            ε_vec = np.array(0 * x)
+            ε_vec[i] = ε
+            v = f(x + ε_vec)
             if pbar: pbar.update()
             return v
 
