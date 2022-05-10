@@ -6,6 +6,8 @@
 
 Marginal unbiased score expansion (MUSE) estimation in Python, with interfaces to Jax and PyMC. 
 
+For the Julia package, see: https://github.com/marius311/MuseInference.jl
+
 ## Install
 
 ```

@@ -31,8 +31,13 @@ class MuseResult():
         self.time = timedelta(0)
 
     def finalize(self, prob):
-        if self.J is not None and self.H is not None:
-            H_prior = prob.gradθ_and_hessθ_logPrior(self.θ)[1]
+        if self.J is not None and self.H is not None and self.θ is not None:
+
+            is_scalar_θ = isinstance(θ, Number)
+            ravel, unravel = self._ravel_unravel(θ)
+            Nθ = 1 if is_scalar_θ else len(ravel(θ))
+
+            H_prior = ravel(prob.gradθ_and_hessθ_logPrior(self.θ)[1]).reshape(Nθ,Nθ)
             self.Σ_inv = self.H.T @ np.linalg.inv(self.J) @ self.H + H_prior
             self.Σ = np.linalg.inv(self.Σ_inv)
             if self.θ is not None:
@@ -49,16 +54,25 @@ class MuseProblem():
         self.x = None
         self.np = np
 
+    def standardizeθ(self, θ):
+        return θ
+
+    def transform_θ(self, θ):
+        return θ
+
+    def inv_transform_θ(self, θ):
+        return θ
+
     def sample_x_z(self, θ):
         raise NotImplementedError()
 
-    def gradθ_logLike(self, x, z, θ):
+    def gradθ_logLike(self, x, z, θ, transformed_θ=False):
         raise NotImplementedError()
 
     def logLike_and_gradz_logLike(self, x, z, θ):
         raise NotImplementedError()
 
-    def gradθ_and_hessθ_logPrior(self, θ):
+    def gradθ_and_hessθ_logPrior(self, θ, transformed_θ=False):
         return (0,0)
 
     def zMAP_at_θ(self, x, z0, θ, gradz_logLike_atol=None):
@@ -125,15 +139,16 @@ class MuseProblem():
             z0 = self.sample_x_z(self._split_rng(rng,1)[0], θ_start)[1]
 
         zMAP_history_dat = zMAP_history_sims = None
-        θunreg = θ = θ_start
+        θunreg  = θ  = θ_start
+        θunregʼ = θʼ = self.transform_θ(θʼ)
 
-        is_scalar_θ = isinstance(θ, Number)
-        ravel, unravel = self._ravel_unravel(θ)
-        Nθ = 1 if is_scalar_θ else len(ravel(θ))
+        is_scalar_θ = isinstance(θʼ, Number)
+        ravel, unravel = self._ravel_unravel(θʼ)
+        Nθ = 1 if is_scalar_θ else len(ravel(θʼ))
         
-        xz_sims = [self.sample_x_z(_rng, θ) for _rng in self._split_rng(rng, nsims)]
-        xs    = [self.x] + [x for (x,_) in xz_sims]
-        zMAPs = [z0]     + [z for (_,z) in xz_sims]
+        xz_sims = [self.sample_x_z(_rng, θʼ) for _rng in self._split_rng(rng, nsims)]
+        xs = [self.x] + [x for (x,_) in xz_sims]
+        ẑs = [z0]     + [z for (_,z) in xz_sims]
 
         pbar = tqdm(total=(maxsteps-len(result.history))*(nsims+1), desc="MUSE") if progress else None
 
@@ -144,48 +159,53 @@ class MuseProblem():
                 t0 = datetime.now()
 
                 if i > 1:
-                    xs = [self.x] + [self.sample_x_z(_rng, θ)[0] for _rng in self._split_rng(rng,nsims)]
+                    xs = [self.x] + [self.sample_x_z(_rng, θʼ)[0] for _rng in self._split_rng(rng,nsims)]
 
                 if i > 2:
-                    Δθ = ravel(result.history[-1]["θ"]) - ravel(result.history[-2]["θ"])
-                    if np.sqrt(-np.inner(Δθ, np.inner(H_inv_post, Δθ))) < θ_rtol:
+                    Δθʼ = ravel(result.history[-1]["θʼ"]) - ravel(result.history[-2]["θʼ"])
+                    if np.sqrt(-np.inner(Δθʼ, np.inner(H_inv_postʼ, Δθʼ))) < θ_rtol:
                         break
 
                 # MUSE gradient
                 def get_MAPs(args):
-                    x, zMAP_prev = args
-                    (zMAP, history) = self.zMAP_at_θ(x, zMAP_prev, θ, gradz_logLike_atol=gradz_logLike_atol)
-                    g = ravel(self.gradθ_logLike(x, zMAP, θ))
+                    x, ẑ_prev = args
+                    (ẑ, history) = self.zMAP_at_θ(x, ẑ_prev, θ, gradz_logLike_atol=gradz_logLike_atol)
+                    gʼ = ravel(self.gradθ_logLike(x, ẑ, θʼ, transformed_θ = True))
+                    g  = ravel(self.gradθ_logLike(x, ẑ, θʼ, transformed_θ = False))
                     if progress: pbar.update()
-                    return (g, zMAP, history)
+                    return (gʼ, g, ẑ, history)
 
-                g_zMAPs = list(pmap(get_MAPs, zip(xs, zMAPs)))
+                gẑs = list(pmap(get_MAPs, zip(xs, ẑs)))
 
-                zMAPs = [zMAP for (_,zMAP,_) in g_zMAPs]
-                if save_zMAP_history: zMAP_history_dat, *zMAP_history_sims = [history for (_,_,history) in g_zMAPs]
-                g_like_dat, *g_like_sims = [g for (g,_,_) in g_zMAPs]
-                g_like = g_like_dat - np.mean(np.stack(g_like_sims), axis=0)
-                g_prior, H_prior = self.gradθ_and_hessθ_logPrior(θ)
-                g_post = g_like + ravel(g_prior)
+                ẑs = [zMAP for (_,zMAP,_) in gẑs]
+                if save_zMAP_history: 
+                    zMAP_history_dat, *zMAP_history_sims = [history for (_,_,history) in gẑs]
+                g_like_dat,  *g_like_sims  = [g  for (g, _,  _) in gẑs]
+                g_like_datʼ, *g_like_simsʼ = [gʼ for (_, gʼ, _) in gẑs]
+                g_likeʼ = g_like_datʼ - np.mean(np.stack(g_like_simsʼ), axis=0)
+                g_priorʼ, H_priorʼ = self.gradθ_and_hessθ_logPrior(θʼ, transformed_θ = True)
+                g_postʼ = g_likeʼ + ravel(g_priorʼ)
 
-                h_inv_like_sims = -1 / np.var(np.stack(g_like_sims), axis=0)
+                h_inv_like_simsʼ = -1 / np.var(np.stack(g_like_simsʼ), axis=0)
                 if is_scalar_θ:
-                    H_inv_post = 1 / (1 / h_inv_like_sims + H_prior)
+                    H_inv_postʼ = 1 / (1 / h_inv_like_simsʼ + H_priorʼ)
                 else:
-                    H_inv_post = np.linalg.inv(np.linalg.inv(np.diag(h_inv_like_sims)) + ravel(H_prior).reshape(Nθ,Nθ))
+                    H_inv_postʼ = np.linalg.inv(np.linalg.inv(np.diag(h_inv_like_simsʼ)) + ravel(H_priorʼ).reshape(Nθ,Nθ))
                 
                 t = datetime.now() - t0
 
                 result.history.append({
-                    "θ":θ, "θunreg":θunreg, "t":t, "g_like_dat": g_like_dat,
-                    "g_like_sims": g_like_sims, "g_like": g_like, "g_prior": g_prior,
-                    "g_post": g_post, "H_inv_post": H_inv_post, "H_prior": H_prior,
+                    "θʼ":θʼ, "θunregʼ":θunregʼ, "t":t, "g_like_dat": g_like_datʼ,
+                    "g_like_sims": g_like_simsʼ, "g_like": g_likeʼ, "g_prior": g_priorʼ,
+                    "g_post": g_postʼ, "H_inv_post": H_inv_postʼ, "H_prior": H_priorʼ, "h_inv_like_sims": h_inv_like_simsʼ,
                     "zMAP_history_dat": zMAP_history_dat, "zMAP_history_sims": zMAP_history_sims,
                 })
 
 
-                θunreg = unravel(ravel(θ) - α * (np.inner(H_inv_post, g_post)))
-                θ = regularize(θunreg)
+                θunregʼ = unravel(ravel(θʼ) - α * (np.inner(H_inv_postʼ, g_postʼ)))
+                θunreg = self.inv_transform_θ(θunregʼ)
+                θʼ = regularize(θunregʼ)
+                θ = self.inv_transform_θ(θʼ)
 
             if progress: pbar.update(pbar.total - pbar.n)
         
@@ -197,10 +217,57 @@ class MuseProblem():
         result.time = sum((h["t"] for h in result.history), start=result.time)
 
         if get_covariance:
-            self.get_J(result=result, gradz_logLike_atol=gradz_logLike_atol, pmap=pmap, progress=progress)
-            self.get_H(result=result, gradz_logLike_atol=gradz_logLike_atol, pmap=pmap, progress=progress)
+            self.get_J(result=result, rng=rng, gradz_logLike_atol=gradz_logLike_atol, pmap=pmap, progress=progress)
+            self.get_H(result=result, rng=rng, gradz_logLike_atol=gradz_logLike_atol, pmap=pmap, progress=progress)
 
         return result
+
+
+    def get_sMUSE(
+        self,
+        θ,
+        rng = None,
+        z0 = None,
+        nsims = 100,
+        progress = False,
+        gradz_logLike_atol = 1e-2,
+        pmap = map
+    ):
+
+        if rng is None:
+            rng = SeedSequence()
+        if z0 is None:
+            z0 = self.sample_x_z(self._split_rng(rng,1)[0], θ)[1]
+
+        zMAP_history_dat = zMAP_history_sims = None
+
+        is_scalar_θ = isinstance(θ, Number)
+        ravel, unravel = self._ravel_unravel(θ)
+        Nθ = 1 if is_scalar_θ else len(ravel(θ))
+        
+        xz_sims = [self.sample_x_z(_rng, θ) for _rng in self._split_rng(rng, nsims)]
+        xs    = [self.x] + [x for (x,_) in xz_sims]
+        zMAPs = [z0]     + [z for (_,z) in xz_sims]
+
+        pbar = tqdm(total=(nsims+1), desc="get_sMUSE") if progress else None
+
+
+        # MUSE gradient
+        def get_MAPs(args):
+            x, zMAP_prev = args
+            (zMAP, history) = self.zMAP_at_θ(x, zMAP_prev, θ, gradz_logLike_atol=gradz_logLike_atol)
+            g = ravel(self.gradθ_logLike(x, zMAP, θ))
+            if progress: pbar.update()
+            return (g, zMAP, history)
+
+        g_zMAPs = list(pmap(get_MAPs, zip(xs, zMAPs)))
+
+        zMAPs = [zMAP for (_,zMAP,_) in g_zMAPs]
+        # if save_zMAP_history: zMAP_history_dat, *zMAP_history_sims = [history for (_,_,history) in g_zMAPs]
+        g_like_dat, *g_like_sims = [g for (g,_,_) in g_zMAPs]
+        g_like = g_like_dat - np.mean(np.stack(g_like_sims), axis=0)
+        return unravel(g_like)
+
 
 
     def get_J(
@@ -231,7 +298,7 @@ class MuseProblem():
 
             ravel, unravel = self._ravel_unravel(θ)
 
-            xz_sims = [self.sample_x_z(_rng, θ) for _rng in self._split_rng(rng, nsims)]
+            xz_sims = [self.sample_x_z(_rng, θ) for _rng in self._split_rng(rng, nsims_remaining)]
 
             def get_g(x_z):
                 try:
@@ -324,3 +391,29 @@ class MuseProblem():
         result.H = np.mean(result.Hs, axis=0)
         result.finalize(self)
         return result
+
+    def check_self_consistency(
+        self, 
+        θ,
+        # fdm = central_fdm(3, 1),
+        atol = 1e-2,
+        rng = None,
+        has_volume_factor = True
+    ):
+    
+        np = self.np
+        θ = self.standardizeθ(θ)
+        ravel, unravel = self._ravel_unravel(θ)
+        if rng is None:
+            rng = SeedSequence()
+        x, z = self.sample_x_z(self._split_rng(rng,1)[0], θ)
+        # volume factor which is added by transformations. dont assume the
+        # transformation is AD-able (eg it isnt for Turing)
+        # J(θ) = has_volume_factor ? FiniteDifferences.jacobian(fdm, θ -> transform_θ(prob, θ), θ)[1] : 1
+        # V(θ) = has_volume_factor ? logdet(J(θ)) : 0
+        # ∇θ_V(θ) = has_volume_factor ? FiniteDifferences.grad(fdm, V, θ)[1] : 0
+        if not all(np.isclose(ravel(self.inv_transform_θ(self.transform_θ(θ))), ravel(θ), atol=atol)):
+            raise Exception()
+        #     @test logPriorθ(prob, θ, UnTransformedθ()) ≈ logPriorθ(prob, transform_θ(prob, θ), Transformedθ()) .+ V(θ)  atol=atol
+        #     @test ∇θ_logLike(prob, x, z, θ, UnTransformedθ()) ≈ J(θ)' * ∇θ_logLike(prob, x, z, transform_θ(prob, θ), Transformedθ()) .+ ∇θ_V(θ)  atol=atol
+        # end

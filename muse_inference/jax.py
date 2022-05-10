@@ -41,7 +41,7 @@ class JaxMuseProblem(MuseProblem):
     def gradθ_and_hessθ_logPrior(self, θ):
         g = jax.grad(self.logPrior)(θ)
         H = jax.hessian(self.logPrior)(θ)
-        return (g,H)
+        return (g, H)
 
     def _ravel_unravel(self, x):
         ravel = lambda x_tree: ravel_pytree(x_tree)[0]
