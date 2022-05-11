@@ -18,7 +18,7 @@ from . import MuseProblem
 
 class PyMCMuseProblem(MuseProblem):
 
-    def __init__(self, model):
+    def __init__(self, model, params=None):
 
         super().__init__()
         
@@ -40,8 +40,11 @@ class PyMCMuseProblem(MuseProblem):
         # (x,z,θ). the x have observed values, the θ are paramaters
         # with no parent, and remaining free variables are z
         model_graph = pm.model_graph.ModelGraph(model)
+        if params: 
+            θ_RVs = [var for var in model.basic_RVs if var.name in params]
+        else:
+            θ_RVs = [var for var in model.basic_RVs if model_graph.get_parents(var) == set()]
         x_RVs = self.model.observed_RVs
-        θ_RVs = [var for var in model.basic_RVs if model_graph.get_parents(var) == set()]
         z_RVs = [var for var in model.free_RVs if var not in θ_RVs]
         x_vals = [rvs_to_values[v] for v in x_RVs]
         θ_vals = [rvs_to_values[v] for v in θ_RVs]
@@ -50,8 +53,8 @@ class PyMCMuseProblem(MuseProblem):
         # get log-prior density
         logpriort = at.sum([logpt.sum() for (logpt, var) in zip(model.logpt(sum=False), model.basic_RVs) if var in θ_RVs])
 
-        # apply forward or backward transformation, accounting for
-        # case where variable has no transform
+        # apply forward or backward transformation stored in val to
+        # the variable x, accounting for case where val has no transform
         forward_transform  = lambda val, x: val.tag.transform.forward(x)  if hasattr(val.tag, "transform") else x
         backward_transform = lambda val, x: val.tag.transform.backward(x) if hasattr(val.tag, "transform") else x
 
@@ -59,7 +62,7 @@ class PyMCMuseProblem(MuseProblem):
         self._transform_θ     = aesara.function(θ_vals, [forward_transform(val, val)  for val in θ_vals])
         self._inv_transform_θ = aesara.function(θ_vals, [backward_transform(val, val) for val in θ_vals])
 
-        # create function for sampling x and transformed+raveled z given untransformed θ
+        # create function for sampling x and transformed + raveled z given untransformed θ
         z_RVs_trans_vec = at.concatenate([forward_transform(val, rv) for (rv,val) in zip(z_RVs, z_vals)], axis=0)
         self._sample_x_z = aesara.function(θ_RVs, x_RVs + [z_RVs_trans_vec])
 
@@ -67,7 +70,9 @@ class PyMCMuseProblem(MuseProblem):
         z_vec, z_unvec = self._ravel_unravel_tensors(z_vals, "z_vec")
         θ_vec, θ_unvec = self._ravel_unravel_tensors(θ_vals, "θ_vec")
 
-        # create likelihood function and gradients in terms of the transformed+raveled z and transformed+raveled θ
+        # create necessary functions, gradients, and hessians, in
+        # terms of the transformed + raveled z and transformed or
+        # untransformed + raveled θ
         def get_gradients(θ_unvec):
             logpt_vec = aesara.clone_replace(logpt, dict(zip(z_vals+θ_vals, z_unvec+θ_unvec)))
             logpriort_vec = aesara.clone_replace(logpriort, dict(zip(θ_vals, θ_unvec)))
@@ -77,14 +82,14 @@ class PyMCMuseProblem(MuseProblem):
             dlogpriort_vec = aesara.grad(logpriort_vec, wrt=θ_vec)
             d2logpriort_vec = aesara.gradient.hessian(logpriort_vec, wrt=θ_vec)
 
-            _dθlogp = aesara.function(x_vals + [z_vec, θ_vec], dθlogpt_vec)
-            _logp_dzlogp = aesara.function(x_vals + [z_vec, θ_vec], [logpt_vec, dzlogpt_vec])
-            _dlogprior_d2logprior = aesara.function([θ_vec], [dlogpriort_vec, d2logpriort_vec])
+            dθlogp = aesara.function(x_vals + [z_vec, θ_vec], dθlogpt_vec)
+            logp_dzlogp = aesara.function(x_vals + [z_vec, θ_vec], [logpt_vec, dzlogpt_vec])
+            dlogprior_d2logprior = aesara.function([θ_vec], [dlogpriort_vec, d2logpriort_vec])
 
-            return _dθlogp, _logp_dzlogp, _dlogprior_d2logprior
+            return dθlogp, logp_dzlogp, dlogprior_d2logprior
 
-        self._dθlogp, self._logp_dzlogp, self._dlogprior_d2logprior = get_gradients(θ_unvec)
         θ_unvec_untrans = [forward_transform(val, x) for (val, x) in zip(θ_vals, θ_unvec)]
+        self._dθlogp, self._logp_dzlogp, self._dlogprior_d2logprior = get_gradients(θ_unvec)
         self._dθlogp_untransθ, self._logp_dzlogp_untransθ, self._dlogprior_d2logprior_untransθ = get_gradients(θ_unvec_untrans)
 
 

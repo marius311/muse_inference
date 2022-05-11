@@ -7,3 +7,10 @@ docs/.ipynb_checkpoints
 docs/*.ipynb
 *.code-workspace
 build
+*.prof
+profile
+scratch
+Untitled*
+todo.md
+bin
+.vscode
