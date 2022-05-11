@@ -37,8 +37,8 @@ class MuseResult():
             ravel, unravel = prob._ravel_unravel(self.θ)
             Nθ = 1 if is_scalar_θ else len(ravel(self.θ))
 
-            H_prior = ravel(prob.gradθ_and_hessθ_logPrior(self.θ)[1]).reshape(Nθ,Nθ)
-            self.Σ_inv = self.H.T @ np.linalg.inv(self.J) @ self.H - H_prior
+            H_prior = ravel(prob.gradθ_and_hessθ_logPrior(self.θ, transformed_θ=False)[1]).reshape(Nθ,Nθ)
+            self.Σ_inv = self.H.T @ np.linalg.inv(self.J) @ self.H #- H_prior
             self.Σ = np.linalg.inv(self.Σ_inv)
             if self.θ is not None:
                 if isinstance(self.θ, Number):
@@ -200,9 +200,10 @@ class MuseProblem():
 
                 result.history.append({
                     "θʼ":θʼ, "θunregʼ":θunregʼ, "θ":θ, "θunreg":θunreg,
-                    "t":t, "g_like_datʼ": g_like_datʼ,
+                    "t":t, "g_like_datʼ": g_like_datʼ, "g_like_sims": g_like_sims, 
                     "g_like_simsʼ": g_like_simsʼ, "g_likeʼ": g_likeʼ, "g_priorʼ": g_priorʼ,
-                    "g_postʼ": g_postʼ, "H_inv_postʼ": H_inv_postʼ, "H_priorʼ": H_priorʼ, "h_inv_like_simsʼ": h_inv_like_simsʼ,
+                    "g_postʼ": g_postʼ, "H_inv_postʼ": H_inv_postʼ, "H_priorʼ": H_priorʼ, 
+                    "h_inv_like_simsʼ": h_inv_like_simsʼ,
                     "zMAP_history_dat": zMAP_history_dat, "zMAP_history_sims": zMAP_history_sims,
                 })
 
@@ -222,8 +223,16 @@ class MuseProblem():
         result.time = sum((h["t"] for h in result.history), start=result.time)
 
         if get_covariance:
-            self.get_J(result=result, rng=rng, gradz_logLike_atol=gradz_logLike_atol, pmap=pmap, progress=progress)
-            self.get_H(result=result, rng=rng, gradz_logLike_atol=gradz_logLike_atol, pmap=pmap, progress=progress)
+            self.get_J(
+                result=result, nsims=nsims, 
+                rng=rng, gradz_logLike_atol=gradz_logLike_atol, 
+                pmap=pmap, progress=progress
+            )
+            self.get_H(
+                result=result, nsims=max(1,nsims//10), 
+                rng=rng, gradz_logLike_atol=gradz_logLike_atol, 
+                pmap=pmap, progress=progress
+            )
 
         return result
 
@@ -278,7 +287,7 @@ class MuseProblem():
     def get_J(
         self,
         result = None,
-        θ = None,
+        θ0 = None,
         gradz_logLike_atol = 1e-2,
         rng = None,
         nsims = 100, 
@@ -291,8 +300,11 @@ class MuseProblem():
             result = MuseResult()
         if rng is None:
             rng = SeedSequence()
-        if θ is None:
-            θ = result.θ
+        if θ0 is None:
+            if result.θ is None:
+                raise Exception("θ0 or result.θ must be given.")
+            else:
+                θ0 = result.θ
 
         nsims_remaining = nsims - len(result.gs)
 
@@ -301,15 +313,15 @@ class MuseProblem():
             pbar = tqdm(total=nsims_remaining, desc="get_J") if progress else None
             t0 = datetime.now()
 
-            ravel, unravel = self._ravel_unravel(θ)
+            ravel, unravel = self._ravel_unravel(θ0)
 
-            xz_sims = [self.sample_x_z(_rng, θ) for _rng in self._split_rng(rng, nsims_remaining)]
+            xz_sims = [self.sample_x_z(_rng, θ0) for _rng in self._split_rng(rng, nsims_remaining)]
 
             def get_g(x_z):
                 try:
                     x, z = x_z
-                    zMAP = self.zMAP_at_θ(x, z, θ, gradz_logLike_atol=gradz_logLike_atol)[0]
-                    g = ravel(self.gradθ_logLike(x, zMAP, θ))
+                    zMAP = self.zMAP_at_θ(x, z, θ0, gradz_logLike_atol=gradz_logLike_atol)[0]
+                    g = ravel(self.gradθ_logLike(x, zMAP, θ0, transformed_θ=False))
                     if progress: pbar.update()
                     return g
                 except Exception:
@@ -330,7 +342,7 @@ class MuseProblem():
     def get_H(
         self,
         result = None,
-        θ = None,
+        θ0 = None,
         step = 0.01,
         gradz_logLike_atol = 1e-2,
         rng = None,
@@ -344,29 +356,31 @@ class MuseProblem():
             result = MuseResult()
         if rng is None:
             rng = SeedSequence()
-        if θ is None:
-            θ = result.θ
+        if θ0 is None:
+            if result.θ is None:
+                raise Exception("θ0 or result.θ must be given.")
+            else:
+                θ0 = result.θ
 
-        is_scalar_θ = isinstance(θ, Number)
-        ravel, unravel = self._ravel_unravel(θ)
-        Nθ = 1 if is_scalar_θ else len(ravel(θ))
-        
+
         nsims_remaining = nsims - len(result.Hs)
 
         if nsims_remaining > 0:
                 
+            is_scalar_θ = isinstance(θ0, Number)
+            ravel, unravel = self._ravel_unravel(θ0)
+            Nθ = 1 if is_scalar_θ else len(ravel(θ0))
+
             pbar = tqdm(total=nsims_remaining*(2*Nθ+1), desc="get_H") if progress else None
             t0 = datetime.now()
 
-            ravel, unravel = self._ravel_unravel(θ)
-
             # generate simulations
-            xz_sims = [self.sample_x_z(_rng, θ) for _rng in self._split_rng(rng, nsims_remaining)]
+            xz_sims = [self.sample_x_z(_rng, θ0) for _rng in self._split_rng(rng, nsims_remaining)]
 
             # initial fit at fiducial, used at starting points for finite difference below
             def get_zMAP(x_z):
                 x, z = x_z
-                zMAP = self.zMAP_at_θ(x, z, θ, gradz_logLike_atol=gradz_logLike_atol)[0]
+                zMAP = self.zMAP_at_θ(x, z, θ0, gradz_logLike_atol=gradz_logLike_atol)[0]
                 if progress: pbar.update()
                 return zMAP
             zMAPs_fid = pmap(get_zMAP, xz_sims)
@@ -375,13 +389,13 @@ class MuseProblem():
             # pmap_sims, pmap_jac = (pmap_over == :jac || (pmap_over == :auto && length(θ₀) > nsims_remaining)) ? (_map, pmap) : (pmap, _map)
             def getH(x_zMAPfid_rng):
                 x, zMAPfid, rng = x_zMAPfid_rng
-                def get_sMAP(θ_vec):
-                    θ = unravel(θ_vec)
+                def get_sMAP(θvec):
+                    θ = unravel(θvec)
                     x = self.sample_x_z(copy(rng), θ)[0]
-                    zMAP = self.zMAP_at_θ(x, zMAPfid, θ, gradz_logLike_atol=gradz_logLike_atol)[0]
-                    return ravel(self.gradθ_logLike(x, zMAP, θ))
+                    zMAP = self.zMAP_at_θ(x, zMAPfid, θ0, gradz_logLike_atol=gradz_logLike_atol)[0]
+                    return ravel(self.gradθ_logLike(x, zMAP, θ0, transformed_θ=False))
                 try:
-                    return pjacobian(get_sMAP, ravel(θ), step, pbar=pbar)
+                    return pjacobian(get_sMAP, ravel(θ0), step, pbar=pbar)
                 except Exception:
                     if skip_errors:
                         return None
@@ -396,29 +410,3 @@ class MuseProblem():
         result.H = np.mean(result.Hs, axis=0)
         result.finalize(self)
         return result
-
-    def check_self_consistency(
-        self, 
-        θ,
-        # fdm = central_fdm(3, 1),
-        atol = 1e-2,
-        rng = None,
-        has_volume_factor = True
-    ):
-    
-        np = self.np
-        θ = self.standardizeθ(θ)
-        ravel, unravel = self._ravel_unravel(θ)
-        if rng is None:
-            rng = SeedSequence()
-        x, z = self.sample_x_z(self._split_rng(rng,1)[0], θ)
-        # volume factor which is added by transformations. dont assume the
-        # transformation is AD-able (eg it isnt for Turing)
-        # J(θ) = has_volume_factor ? FiniteDifferences.jacobian(fdm, θ -> transform_θ(prob, θ), θ)[1] : 1
-        # V(θ) = has_volume_factor ? logdet(J(θ)) : 0
-        # ∇θ_V(θ) = has_volume_factor ? FiniteDifferences.grad(fdm, V, θ)[1] : 0
-        if not all(np.isclose(ravel(self.inv_transform_θ(self.transform_θ(θ))), ravel(θ), atol=atol)):
-            raise Exception()
-        #     @test logPriorθ(prob, θ, UnTransformedθ()) ≈ logPriorθ(prob, transform_θ(prob, θ), Transformedθ()) .+ V(θ)  atol=atol
-        #     @test ∇θ_logLike(prob, x, z, θ, UnTransformedθ()) ≈ J(θ)' * ∇θ_logLike(prob, x, z, transform_θ(prob, θ), Transformedθ()) .+ ∇θ_V(θ)  atol=atol
-        # end
