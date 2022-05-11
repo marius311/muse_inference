@@ -53,6 +53,7 @@ class MuseProblem():
     def __init__(self):
         self.x = None
         self.np = np
+        self.has_θ_transform = False
 
     def standardizeθ(self, θ):
         return θ
@@ -62,6 +63,9 @@ class MuseProblem():
 
     def inv_transform_θ(self, θ):
         return θ
+
+    def has_θ_transform(self, θ):
+        return False
 
     def sample_x_z(self, θ):
         raise NotImplementedError()
@@ -140,7 +144,7 @@ class MuseProblem():
 
         zMAP_history_dat = zMAP_history_sims = None
         θunreg  = θ  = θ_start
-        θunregʼ = θʼ = self.transform_θ(θʼ)
+        θunregʼ = θʼ = self.transform_θ(θ)
 
         is_scalar_θ = isinstance(θʼ, Number)
         ravel, unravel = self._ravel_unravel(θʼ)
@@ -171,17 +175,17 @@ class MuseProblem():
                     x, ẑ_prev = args
                     (ẑ, history) = self.zMAP_at_θ(x, ẑ_prev, θ, gradz_logLike_atol=gradz_logLike_atol)
                     gʼ = ravel(self.gradθ_logLike(x, ẑ, θʼ, transformed_θ = True))
-                    g  = ravel(self.gradθ_logLike(x, ẑ, θʼ, transformed_θ = False))
+                    g  = ravel(self.gradθ_logLike(x, ẑ, θ,  transformed_θ = False)) if self.has_θ_transform else gʼ
                     if progress: pbar.update()
                     return (gʼ, g, ẑ, history)
 
                 gẑs = list(pmap(get_MAPs, zip(xs, ẑs)))
 
-                ẑs = [zMAP for (_,zMAP,_) in gẑs]
+                ẑs = [zMAP for (_,_,zMAP,_) in gẑs]
                 if save_zMAP_history: 
                     zMAP_history_dat, *zMAP_history_sims = [history for (_,_,history) in gẑs]
-                g_like_dat,  *g_like_sims  = [g  for (g, _,  _) in gẑs]
-                g_like_datʼ, *g_like_simsʼ = [gʼ for (_, gʼ, _) in gẑs]
+                g_like_dat,  *g_like_sims  = [g  for (g, _,  *_) in gẑs]
+                g_like_datʼ, *g_like_simsʼ = [gʼ for (_, gʼ, *_) in gẑs]
                 g_likeʼ = g_like_datʼ - np.mean(np.stack(g_like_simsʼ), axis=0)
                 g_priorʼ, H_priorʼ = self.gradθ_and_hessθ_logPrior(θʼ, transformed_θ = True)
                 g_postʼ = g_likeʼ + ravel(g_priorʼ)
@@ -195,9 +199,10 @@ class MuseProblem():
                 t = datetime.now() - t0
 
                 result.history.append({
-                    "θʼ":θʼ, "θunregʼ":θunregʼ, "t":t, "g_like_dat": g_like_datʼ,
-                    "g_like_sims": g_like_simsʼ, "g_like": g_likeʼ, "g_prior": g_priorʼ,
-                    "g_post": g_postʼ, "H_inv_post": H_inv_postʼ, "H_prior": H_priorʼ, "h_inv_like_sims": h_inv_like_simsʼ,
+                    "θʼ":θʼ, "θunregʼ":θunregʼ, "θ":θ, "θunreg":θunreg,
+                    "t":t, "g_like_datʼ": g_like_datʼ,
+                    "g_like_simsʼ": g_like_simsʼ, "g_likeʼ": g_likeʼ, "g_priorʼ": g_priorʼ,
+                    "g_postʼ": g_postʼ, "H_inv_postʼ": H_inv_postʼ, "H_priorʼ": H_priorʼ, "h_inv_like_simsʼ": h_inv_like_simsʼ,
                     "zMAP_history_dat": zMAP_history_dat, "zMAP_history_sims": zMAP_history_sims,
                 })
 

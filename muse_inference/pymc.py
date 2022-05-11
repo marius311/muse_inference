@@ -53,10 +53,17 @@ class PyMCMuseProblem(MuseProblem):
         # get log-prior density
         logpriort = at.sum([logpt.sum() for (logpt, var) in zip(model.logpt(sum=False), model.basic_RVs) if var in θ_RVs])
 
-        # apply forward or backward transformation stored in val to
-        # the variable x, accounting for case where val has no transform
-        forward_transform  = lambda val, x: val.tag.transform.forward(x)  if hasattr(val.tag, "transform") else x
-        backward_transform = lambda val, x: val.tag.transform.backward(x) if hasattr(val.tag, "transform") else x
+        # figure out if any transforms are needed and if so, create
+        # functions to apply forward or backward transformation stored
+        # in val to the variable x, accounting for case where val has
+        # no transform
+        if any(hasattr(val.tag, "transform") for val in z_vals+θ_vals):
+            self.has_θ_transform = True
+            forward_transform  = lambda val, x: val.tag.transform.forward(x)  if hasattr(val.tag, "transform") else x
+            backward_transform = lambda val, x: val.tag.transform.backward(x) if hasattr(val.tag, "transform") else x
+        else:
+            self.has_θ_transform = False
+            forward_transform = backward_transform = lambda val, x: x
 
         # θ transforms
         self._transform_θ     = aesara.function(θ_vals, [forward_transform(val, val)  for val in θ_vals])
@@ -88,16 +95,19 @@ class PyMCMuseProblem(MuseProblem):
 
             return dθlogp, logp_dzlogp, dlogprior_d2logprior
 
-        θ_unvec_untrans = [forward_transform(val, x) for (val, x) in zip(θ_vals, θ_unvec)]
+        θ_unvec_untrans = [backward_transform(val, x) for (val, x) in zip(θ_vals, θ_unvec)]
         self._dθlogp, self._logp_dzlogp, self._dlogprior_d2logprior = get_gradients(θ_unvec)
         self._dθlogp_untransθ, self._logp_dzlogp_untransθ, self._dlogprior_d2logprior_untransθ = get_gradients(θ_unvec_untrans)
 
 
     def transform_θ(self, θ):
-        return self._transform_θ(*θ)
+        return self._transform_θ(*np.atleast_1d(θ))
 
     def inv_transform_θ(self, θ):
-        return self._inv_transform_θ(*θ)
+        return self._inv_transform_θ(*np.atleast_1d(θ))
+
+    def has_θ_transform(self):
+        return True
 
     def sample_x_z(self, rng, θ):
         self.model.rng_seeder = rng
