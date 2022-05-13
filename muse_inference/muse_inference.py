@@ -150,7 +150,7 @@ class MuseProblem():
         ravel, unravel = self._ravel_unravel(θʼ)
         Nθ = 1 if is_scalar_θ else len(ravel(θʼ))
         
-        xz_sims = [self.sample_x_z(_rng, θʼ) for _rng in self._split_rng(rng, nsims)]
+        xz_sims = [self.sample_x_z(_rng, θ) for _rng in self._split_rng(rng, nsims)]
         xs = [self.x] + [x for (x,_) in xz_sims]
         ẑs = [z0]     + [z for (_,z) in xz_sims]
 
@@ -163,7 +163,7 @@ class MuseProblem():
                 t0 = datetime.now()
 
                 if i > 1:
-                    xs = [self.x] + [self.sample_x_z(_rng, θʼ)[0] for _rng in self._split_rng(rng,nsims)]
+                    xs = [self.x] + [self.sample_x_z(_rng, θ)[0] for _rng in self._split_rng(rng,nsims)]
 
                 if i > 2:
                     Δθʼ = ravel(result.history[-1]["θʼ"]) - ravel(result.history[-2]["θʼ"])
@@ -174,8 +174,8 @@ class MuseProblem():
                 def get_MAPs(args):
                     x, ẑ_prev = args
                     (ẑ, history) = self.zMAP_at_θ(x, ẑ_prev, θ, gradz_logLike_atol=gradz_logLike_atol)
-                    gʼ = ravel(self.gradθ_logLike(x, ẑ, θʼ, transformed_θ = True))
-                    g  = ravel(self.gradθ_logLike(x, ẑ, θ,  transformed_θ = False)) if self.has_θ_transform else gʼ
+                    gʼ = ravel(self.gradθ_logLike(x, ẑ, θʼ, transformed_θ=True))
+                    g  = ravel(self.gradθ_logLike(x, ẑ, θ,  transformed_θ=False)) if self.has_θ_transform else gʼ
                     if progress: pbar.update()
                     return (gʼ, g, ẑ, history)
 
@@ -187,7 +187,7 @@ class MuseProblem():
                 g_like_dat,  *g_like_sims  = [g  for (g, _,  *_) in gẑs]
                 g_like_datʼ, *g_like_simsʼ = [gʼ for (_, gʼ, *_) in gẑs]
                 g_likeʼ = g_like_datʼ - np.mean(np.stack(g_like_simsʼ), axis=0)
-                g_priorʼ, H_priorʼ = self.gradθ_and_hessθ_logPrior(θʼ, transformed_θ = True)
+                g_priorʼ, H_priorʼ = self.gradθ_and_hessθ_logPrior(θʼ, transformed_θ=True)
                 g_postʼ = g_likeʼ + ravel(g_priorʼ)
 
                 h_inv_like_simsʼ = -1 / np.var(np.stack(g_like_simsʼ), axis=0)

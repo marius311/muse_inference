@@ -9,9 +9,9 @@ import aesara.tensor as at
 import arviz as az
 import numpy as np
 import scipy.stats as st
-
 import pymc as pm
 from pymc.distributions import joint_logpt
+from scipy.optimize import minimize
 
 from . import MuseProblem
 
@@ -51,7 +51,7 @@ class PyMCMuseProblem(MuseProblem):
         z_vals = [rvs_to_values[v] for v in z_RVs]
 
         # get log-prior density
-        logpriort = at.sum([logpt.sum() for (logpt, var) in zip(model.logpt(sum=False), model.basic_RVs) if var in θ_RVs])
+        logpriort = at.sum([logpt.sum() for (logpt, var) in zip(model.logpt(sum=False, jacobian=True), model.basic_RVs) if var in θ_RVs])
 
         # figure out if any transforms are needed and if so, create
         # functions to apply forward or backward transformation stored
@@ -95,7 +95,7 @@ class PyMCMuseProblem(MuseProblem):
 
             return dθlogp, logp_dzlogp, dlogprior_d2logprior
 
-        θ_unvec_untrans = [backward_transform(val, x) for (val, x) in zip(θ_vals, θ_unvec)]
+        θ_unvec_untrans = [forward_transform(val, x) for (val, x) in zip(θ_vals, θ_unvec)]
         self._dθlogp, self._logp_dzlogp, self._dlogprior_d2logprior = get_gradients(θ_unvec)
         self._dθlogp_untransθ, self._logp_dzlogp_untransθ, self._dlogprior_d2logprior_untransθ = get_gradients(θ_unvec_untrans)
 
@@ -118,16 +118,23 @@ class PyMCMuseProblem(MuseProblem):
         *x, z = self._sample_x_z(*np.atleast_1d(θ))
         return (x, z)
 
-    def gradθ_logLike(self, x, zvec, θvec, transformed_θ):
+    def gradθ_logLike(self, x, z_vec, θ_vec, transformed_θ):
         _dθlogp = self._dθlogp if transformed_θ else self._dθlogp_untransθ
-        return _dθlogp(*x, zvec, np.atleast_1d(θvec))
+        return _dθlogp(*x, z_vec, np.atleast_1d(θ_vec))
 
-    def logLike_and_gradz_logLike(self, x, zvec, θvec):
-        return self._logp_dzlogp(*x, zvec, np.atleast_1d(θvec))
+    def logLike_and_gradz_logLike(self, x, z_vec, θ_vec):
+        return self._logp_dzlogp_untransθ(*x, z_vec, np.atleast_1d(θ_vec))
 
     def gradθ_and_hessθ_logPrior(self, θ, transformed_θ):
         _dlogprior_d2logprior = self._dlogprior_d2logprior if transformed_θ else self._dlogprior_d2logprior_untransθ
         return _dlogprior_d2logprior(np.atleast_1d(θ))
+
+    def zMAP_at_θ(self, x, z0_vec, θ_vec, gradz_logLike_atol=None):
+        def objective(z_vec):
+            logLike, gradz_logLike = self.logLike_and_gradz_logLike(x, z_vec, θ_vec)
+            return (-logLike, -gradz_logLike)
+        soln = minimize(objective, z0_vec, method='BFGS', jac=True, options=dict(gtol=gradz_logLike_atol))
+        return (soln.x, soln)
 
     def _ravel_unravel_tensors(self, RVs, name):
         RVs_raveled = at.vector(name=name)
