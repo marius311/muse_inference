@@ -13,7 +13,7 @@ import pymc as pm
 from pymc.distributions import joint_logpt
 from scipy.optimize import minimize
 
-from . import MuseProblem
+from .muse_inference import MuseProblem, XZSample, ScoreAndMAP
 
 
 class PyMCMuseProblem(MuseProblem):
@@ -58,11 +58,11 @@ class PyMCMuseProblem(MuseProblem):
         # in val to the variable x, accounting for case where val has
         # no transform
         if any(hasattr(val.tag, "transform") for val in z_vals+θ_vals):
-            self.has_θ_transform = True
+            self._has_θ_transform = True
             forward_transform  = lambda val, x: val.tag.transform.forward(x)  if hasattr(val.tag, "transform") else x
             backward_transform = lambda val, x: val.tag.transform.backward(x) if hasattr(val.tag, "transform") else x
         else:
-            self.has_θ_transform = False
+            self._has_θ_transform = False
             forward_transform = backward_transform = lambda val, x: x
 
         # θ transforms
@@ -89,15 +89,14 @@ class PyMCMuseProblem(MuseProblem):
             dlogpriort_vec = aesara.grad(logpriort_vec, wrt=θ_vec)
             d2logpriort_vec = aesara.gradient.hessian(logpriort_vec, wrt=θ_vec)
 
-            dθlogp = aesara.function(x_vals + [z_vec, θ_vec], dθlogpt_vec)
-            logp_dzlogp = aesara.function(x_vals + [z_vec, θ_vec], [logpt_vec, dzlogpt_vec])
+            logp_dzθlogp = aesara.function(x_vals + [z_vec, θ_vec], [logpt_vec, dzlogpt_vec, dθlogpt_vec])
             dlogprior_d2logprior = aesara.function([θ_vec], [dlogpriort_vec, d2logpriort_vec])
 
-            return dθlogp, logp_dzlogp, dlogprior_d2logprior
+            return logp_dzθlogp, dlogprior_d2logprior
 
         θ_unvec_untrans = [forward_transform(val, x) for (val, x) in zip(θ_vals, θ_unvec)]
-        self._dθlogp, self._logp_dzlogp, self._dlogprior_d2logprior = get_gradients(θ_unvec)
-        self._dθlogp_untransθ, self._logp_dzlogp_untransθ, self._dlogprior_d2logprior_untransθ = get_gradients(θ_unvec_untrans)
+        self._logp_dzθlogp_transθ,   self._dlogprior_d2logprior_transθ   = get_gradients(θ_unvec)
+        self._logp_dzθlogp_untransθ, self._dlogprior_d2logprior_untransθ = get_gradients(θ_unvec_untrans)
 
 
     def transform_θ(self, θ):
@@ -107,7 +106,11 @@ class PyMCMuseProblem(MuseProblem):
         return self._inv_transform_θ(*np.atleast_1d(θ))
 
     def has_θ_transform(self):
-        return True
+        return self._has_θ_transform
+
+    def logLike_and_gradzθ_logLike(self, x, z_vec, θ_vec, transformed_θ):
+        _logp_dzθlogp = self._logp_dzθlogp_transθ if transformed_θ else self._logp_dzθlogp_untransθ
+        return _logp_dzθlogp(*x, z_vec, np.atleast_1d(θ_vec))
 
     def sample_x_z(self, rng, θ):
         self.model.rng_seeder = rng
@@ -116,25 +119,11 @@ class PyMCMuseProblem(MuseProblem):
             self.model.rng_seq.pop() # the call to next_rng undesiredly (for this) added it to rng_seq, so remove it
             rng.get_value(borrow=True).set_state(state)
         *x, z = self._sample_x_z(*np.atleast_1d(θ))
-        return (x, z)
-
-    def gradθ_logLike(self, x, z_vec, θ_vec, transformed_θ):
-        _dθlogp = self._dθlogp if transformed_θ else self._dθlogp_untransθ
-        return _dθlogp(*x, z_vec, np.atleast_1d(θ_vec))
-
-    def logLike_and_gradz_logLike(self, x, z_vec, θ_vec):
-        return self._logp_dzlogp_untransθ(*x, z_vec, np.atleast_1d(θ_vec))
+        return XZSample(x, z)
 
     def gradθ_and_hessθ_logPrior(self, θ, transformed_θ):
-        _dlogprior_d2logprior = self._dlogprior_d2logprior if transformed_θ else self._dlogprior_d2logprior_untransθ
+        _dlogprior_d2logprior = self._dlogprior_d2logprior_transθ if transformed_θ else self._dlogprior_d2logprior_untransθ
         return _dlogprior_d2logprior(np.atleast_1d(θ))
-
-    def zMAP_at_θ(self, x, z0_vec, θ_vec, gradz_logLike_atol=None):
-        def objective(z_vec):
-            logLike, gradz_logLike = self.logLike_and_gradz_logLike(x, z_vec, θ_vec)
-            return (-logLike, -gradz_logLike)
-        soln = minimize(objective, z0_vec, method='BFGS', jac=True, options=dict(gtol=gradz_logLike_atol))
-        return (soln.x, soln)
 
     def _ravel_unravel_tensors(self, RVs, name):
         RVs_raveled = at.vector(name=name)
