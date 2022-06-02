@@ -46,6 +46,7 @@ class JaxMuseProblem(MuseProblem):
             options = dict(gtol=z_tol, **options)
 
         ravel, unravel = self._ravel_unravel(z_guess)
+        
         soln = minimize(
             lambda z_vec: -self.logLike(x, unravel(z_vec), θ), ravel(z_guess), 
             method="l-bfgs-experimental-do-not-rely-on-this", 

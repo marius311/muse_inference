@@ -96,11 +96,13 @@ class MuseProblem():
             options = dict(gtol=z_tol, **options)
 
         np = self.np
-        
-        last_ztol = last_gradθ_logLike = None
+                
+        last_gradθ_logLike = None
         gradθ_logLikes = []
-        ztol_history = []
         terminate = False
+
+        ravel_z, unravel_z = self._ravel_unravel(z_guess)
+        ravel_θ, unravel_θ = self._ravel_unravel(θ)
 
         θ̃ = self.transform_θ(θ)
 
@@ -108,19 +110,17 @@ class MuseProblem():
         # to solver. we also use a hacky way to terminate early because
         # not all minimizers support early termination via callback
         def objective(z_vec):
-            nonlocal last_gradθ_logLike, last_ztol
+            nonlocal last_gradθ_logLike
             if terminate:
                 return (0, 0*z_guess)
             else:
-                logLike, gradz_logLike, last_gradθ_logLike = self.logLike_and_gradzθ_logLike(x, z_vec, θ̃, transformed_θ=True)
-                last_ztol = np.max(np.abs(gradz_logLike))
-                return (-logLike, -gradz_logLike)
+                logLike, gradz_logLike, last_gradθ_logLike = self.logLike_and_gradzθ_logLike(x, unravel_z(z_vec), θ̃, transformed_θ=True)
+                return (-logLike, -ravel_z(gradz_logLike))
         
         # check if θ-gradient is converged
         def callback(z_vec, *args):
             nonlocal terminate
-            gradθ_logLikes.append(last_gradθ_logLike)
-            ztol_history.append(last_ztol)
+            gradθ_logLikes.append(ravel_θ(last_gradθ_logLike))
             if θ_tol is not None and len(gradθ_logLikes) >= 2:
                 Δgradθ = gradθ_logLikes[-1] - gradθ_logLikes[-2]
                 if all(np.abs(Δgradθ) < θ_tol):
@@ -131,15 +131,13 @@ class MuseProblem():
 
         # save some debug info
         soln.gradθ_logLikes = gradθ_logLikes
-        soln.ztols = ztol_history
         soln.success_gradθ = terminate
         soln.convergence_type = "gradθ stable" if soln.success_gradθ else "gradz tolerance" if soln.success else "not converged"
-        soln.z_tol = z_tol
         soln.θ_tol = θ_tol
 
-        s̃ = self.logLike_and_gradzθ_logLike(x, soln.x, θ̃, transformed_θ=True)[2]
-        s = self.logLike_and_gradzθ_logLike(x, soln.x, θ, transformed_θ=False)[2] if self.has_θ_transform() else s̃
-        z = soln.x
+        z = unravel_z(soln.x)
+        s̃ = self.logLike_and_gradzθ_logLike(x, z, θ̃, transformed_θ=True)[2]
+        s = self.logLike_and_gradzθ_logLike(x, z, θ, transformed_θ=False)[2] if self.has_θ_transform() else s̃
         history = soln
         return ScoreAndMAP(s, s̃, z, history)
 
@@ -224,7 +222,7 @@ class MuseProblem():
 
                 if i > 1:
                     xs = [self.x] + [self.sample_x_z(_rng, θ).x for _rng in self._split_rng(rng,nsims)]
-                    s_MAP_tol = np.sqrt(-H̃_inv_post) * θ_rtol
+                    s_MAP_tol = np.sqrt(np.diag(-H̃_inv_post)) * θ_rtol
 
                 if i > 2:
                     Δθ̃ = ravel(result.history[-1]["θ̃"]) - ravel(result.history[-2]["θ̃"])
