@@ -26,8 +26,7 @@ class JaxMuseProblem(MuseProblem):
 
     @partial(jax.jit, static_argnums=(0,))
     def logLike_and_gradzθ_logLike(self, x, z, θ, transformed_θ=None):
-        logLike = self.logLike(x, z, θ)
-        gradz_logLike, gradθ_logLike = jax.grad(lambda z_θ: self.logLike(x, *z_θ))((z, θ))
+        logLike, (gradz_logLike, gradθ_logLike) = jax.value_and_grad(lambda z_θ: self.logLike(x, *z_θ))((z, θ))
         return (logLike, gradz_logLike, gradθ_logLike)
 
     @partial(jax.jit, static_argnums=(0,))
