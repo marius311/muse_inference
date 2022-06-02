@@ -1,5 +1,5 @@
 
-__all__ = ["MuseProblem", "MuseResult"]
+__all__ = ["MuseProblem", "MuseResult", "XZSample", "ScoreAndMAP"]
 
 from collections import namedtuple
 from copy import copy
@@ -34,18 +34,17 @@ class MuseResult():
     def finalize(self, prob):
         if self.J is not None and self.H is not None and self.θ is not None:
 
-            is_scalar_θ = isinstance(self.θ, Number)
             ravel, unravel = prob._ravel_unravel(self.θ)
-            Nθ = 1 if is_scalar_θ else len(ravel(self.θ))
+            Nθ = len(ravel(self.θ))
 
             H_prior = ravel(prob.gradθ_and_hessθ_logPrior(self.θ, transformed_θ=False)[1]).reshape(Nθ,Nθ)
             self.Σ_inv = self.H.T @ np.linalg.inv(self.J) @ self.H - H_prior
             self.Σ = np.linalg.inv(self.Σ_inv)
             if self.θ is not None:
-                if isinstance(self.θ, Number):
-                    self.dist = sp.stats.norm(self.θ, np.sqrt(self.Σ[0,0]))
+                if Nθ == 1:
+                    self.dist = sp.stats.norm(ravel(self.θ), np.sqrt(self.Σ[0,0]))
                 else:
-                    self.dist = sp.stats.multivariate_normal(self.θ, self.Σ)
+                    self.dist = sp.stats.multivariate_normal(ravel(self.θ), self.Σ)
 
 
 
@@ -86,14 +85,17 @@ class MuseProblem():
         θ, 
         method = 'L-BFGS-B', 
         options = dict(),
-        z_tol = 1e-5,
-        θ_tol = 1e-2,
+        z_tol = None,
+        θ_tol = None,
     ):
-
-        np = self.np
 
         # this function iteratively maximizes over z given fixed θ
         # until the θ-gradient at the z-solution converges
+
+        if z_tol is not None:
+            options = dict(gtol=z_tol, **options)
+
+        np = self.np
         
         last_ztol = last_gradθ_logLike = None
         gradθ_logLikes = []
@@ -125,7 +127,7 @@ class MuseProblem():
                     terminate = True
         
         # run optimization
-        soln = minimize(objective, z_guess, method=method, jac=True, callback=callback, options=dict(gtol=z_tol, **options))
+        soln = minimize(objective, z_guess, method=method, jac=True, callback=callback, options=options)
 
         # save some debug info
         soln.gradθ_logLikes = gradθ_logLikes
@@ -197,7 +199,7 @@ class MuseProblem():
         if rng is None:
             rng = SeedSequence()
         if z0 is None:
-            z0 = self.sample_x_z(self._split_rng(rng,1)[0], θ_start)[1]
+            z0 = self.sample_x_z(self._split_rng(rng,1)[0], θ_start).z
 
         s_MAP_tol = s_MAP_tol_initial
 
@@ -205,9 +207,8 @@ class MuseProblem():
         θunreg = θ = result.θ if result.θ is not None else θ_start
         θ̃unreg = θ̃ = self.transform_θ(θ)
 
-        is_scalar_θ = isinstance(θ̃, Number)
         ravel, unravel = self._ravel_unravel(θ̃)
-        Nθ = 1 if is_scalar_θ else len(ravel(θ̃))
+        Nθ = len(ravel(θ̃))
         
         xz_sims = [self.sample_x_z(_rng, θ) for _rng in self._split_rng(rng, nsims)]
         xs = [self.x] + [sim.x for sim in xz_sims]
@@ -222,7 +223,7 @@ class MuseProblem():
                 t0 = datetime.now()
 
                 if i > 1:
-                    xs = [self.x] + [self.sample_x_z(_rng, θ)[0] for _rng in self._split_rng(rng,nsims)]
+                    xs = [self.x] + [self.sample_x_z(_rng, θ).x for _rng in self._split_rng(rng,nsims)]
                     s_MAP_tol = np.sqrt(-H̃_inv_post) * θ_rtol
 
                 if i > 2:
@@ -244,15 +245,12 @@ class MuseProblem():
                     MAP_history_dat, *MAP_history_sims = [MAP.history for MAP in MAPs]
                 s_MAP_dat, *s_MAP_sims = [MAP.s for MAP in MAPs]
                 s̃_MAP_dat, *s̃_MAP_sims = [MAP.s̃ for MAP in MAPs]
-                s̃_MUSE = s̃_MAP_dat - np.mean(np.stack(s̃_MAP_sims), axis=0)
+                s̃_MUSE = unravel(ravel(s̃_MAP_dat) - np.mean(np.stack(list(map(ravel, s̃_MAP_sims))), axis=0))
                 s̃_prior, H̃_prior = self.gradθ_and_hessθ_logPrior(θ̃, transformed_θ=True)
-                s̃_post = s̃_MUSE + ravel(s̃_prior)
+                s̃_post = unravel(ravel(s̃_MUSE) + ravel(s̃_prior))
 
-                h̃_inv_like_sims = -1 / np.var(np.stack(s̃_MAP_sims), axis=0)
-                if is_scalar_θ:
-                    H̃_inv_post = 1 / (1 / h̃_inv_like_sims + H̃_prior)
-                else:
-                    H̃_inv_post = np.linalg.pinv(np.linalg.pinv(np.diag(h̃_inv_like_sims)) + ravel(H̃_prior).reshape(Nθ,Nθ))
+                H̃_inv_like_sims = np.diag(-1 / np.var(np.stack(list(map(ravel, s̃_MAP_sims))), axis=0))
+                H̃_inv_post = np.linalg.pinv(np.linalg.pinv(H̃_inv_like_sims) + ravel(H̃_prior).reshape(Nθ,Nθ))
                 
                 t = datetime.now() - t0
 
@@ -263,14 +261,13 @@ class MuseProblem():
                     "s̃_MUSE": s̃_MUSE,
                     "s̃_prior": s̃_prior, "s̃_post": s̃_post, 
                     "H̃_inv_post": H̃_inv_post, "H̃_prior": H̃_prior, 
-                    "h̃_inv_like_sims": h̃_inv_like_sims,
+                    "H̃_inv_like_sims": H̃_inv_like_sims,
                     "s_MAP_tol": s_MAP_tol,
                     "MAP_history_dat": MAP_history_dat, 
                     "MAP_history_sims": MAP_history_sims,
                 })
 
-
-                θ̃unreg = unravel(ravel(θ̃) - α * (np.inner(H̃_inv_post, s̃_post)))
+                θ̃unreg = unravel(ravel(θ̃) - α * (np.inner(H̃_inv_post, ravel(s̃_post))))
                 θunreg = self.inv_transform_θ(θ̃unreg)
                 θ̃ = regularize(θ̃unreg)
                 θ = self.inv_transform_θ(θ̃)
@@ -324,6 +321,7 @@ class MuseProblem():
             else:
                 θ0 = result.θ
 
+        ravel, unravel = self._ravel_unravel(θ0)
         nsims_remaining = nsims - len(result.s_MAP_sims)
 
         if nsims_remaining > 0:
@@ -331,14 +329,12 @@ class MuseProblem():
             pbar = tqdm(total=nsims_remaining, desc="get_J") if progress else None
             t0 = datetime.now()
 
-            ravel, unravel = self._ravel_unravel(θ0)
-
             xz_sims = [self.sample_x_z(_rng, θ0) for _rng in self._split_rng(rng, nsims_remaining)]
 
             def get_g(x_z):
                 try:
                     x, z = x_z
-                    result = self.gradθ_logLike_at_zMAP(x, ẑ_prev, θ, method=method, θ_tol=s_MAP_tol)
+                    result = self.gradθ_logLike_at_zMAP(x, z, θ0, method=method, θ_tol=s_MAP_tol)
                     if progress: pbar.update()
                     return result.s
                 except Exception:
@@ -351,7 +347,7 @@ class MuseProblem():
 
             result.time += datetime.now() - t0
 
-        result.J = np.atleast_2d(np.cov(result.s_MAP_sims, rowvar=False))
+        result.J = np.atleast_2d(np.cov(np.stack(list(map(ravel, result.s_MAP_sims))), rowvar=False))
         result.finalize(self)
         return result
 
@@ -387,14 +383,13 @@ class MuseProblem():
 
         if nsims_remaining > 0:
 
+            ravel, unravel = self._ravel_unravel(θ0)
+            Nθ = len(ravel(θ0))
+
             # default to finite difference step size of 0.1σ with σ roughly
             # estimated from s_MAP_sims sims, if we have them
             if step is None and len(result.s_MAP_sims) > 0:
-                step = 0.1 / np.std(result.s_MAP_sims)
-                
-            is_scalar_θ = isinstance(θ0, Number)
-            ravel, unravel = self._ravel_unravel(θ0)
-            Nθ = 1 if is_scalar_θ else len(ravel(θ0))
+                step = 0.1 / np.std(np.stack(list(map(ravel, result.s_MAP_sims))), axis=0)
 
             pbar = tqdm(total=nsims_remaining*(2*Nθ+1), desc="get_H") if progress else None
             t0 = datetime.now()
@@ -412,8 +407,8 @@ class MuseProblem():
 
             # finite difference Jacobian
             # pmap_sims, pmap_jac = (pmap_over == :jac || (pmap_over == :auto && length(θ₀) > nsims_remaining)) ? (_map, pmap) : (pmap, _map)
-            def _get_H(x_zMAPfid_rng):
-                x, zMAPfid, rng = x_zMAPfid_rng
+            def _get_H(args):
+                x, zMAPfid, rng = args
                 
                 def get_sMAP(θvec):
                     θ = unravel(θvec)
@@ -433,6 +428,7 @@ class MuseProblem():
             
             result.time += datetime.now() - t0
 
-        result.H = np.mean(result.Hs, axis=0)
+        result.H = np.mean(np.array(result.Hs), axis=0)
         result.finalize(self)
         return result
+

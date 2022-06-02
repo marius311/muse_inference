@@ -8,7 +8,7 @@ from numbers import Number
 import jax
 import jax.numpy as jnp
 import numpy as np
-from muse_inference import MuseProblem, MuseResult
+from muse_inference import MuseProblem, MuseResult, XZSample, ScoreAndMAP
 from muse_inference.jax import JaxMuseProblem, JittedJaxMuseProblem
 
 
@@ -108,53 +108,57 @@ def test_ravel_numpy():
 
 def test_scalar_jax():
 
-    class JaxFunnelMuseProblem(JittedJaxMuseProblem):
-        
+    class JaxFunnelMuseProblem(JaxMuseProblem):
+
         def __init__(self, N):
             super().__init__()
             self.N = N
 
-        def sample_x_z(self, rng, θ):
-            z = rng.randn(self.N) * np.exp(θ/2)
-            x = z + rng.randn(self.N)
-            return (jnp.array(x), jnp.array(z))
+        def sample_x_z(self, key, θ):
+            keys = jax.random.split(key, 2)
+            z = jax.random.normal(keys[0], (self.N,)) * np.exp(θ/2)
+            x = z + jax.random.normal(keys[1], (self.N,))
+            return XZSample(x, z)
 
         def logLike(self, x, z, θ):
             return -(jnp.sum((x - z)**2) + jnp.sum(z**2) / jnp.exp(θ) + 512*θ) / 2
-        
+
         def logPrior(self, θ):
             return -θ**2 / (2*3**2)
-
 
     θ_true = 1.
     θ_start = 0.
 
     prob = JaxFunnelMuseProblem(512)
-    rng = np.random.RandomState(0)
-    prob.x = prob.sample_x_z(rng, θ_true)[0]
+    ravel, unravel = prob._ravel_unravel(θ_start)
+    keys = prob._split_rng(jax.random.PRNGKey(0), 3)
+    (x, z) = prob.sample_x_z(keys[0], θ_true)
+    prob.x = x
 
-    result = prob.solve(θ_start=θ_start, rng=rng, gradz_logLike_atol=1e-4, maxsteps=10)
+    result = prob.solve(θ_start=θ_start, rng=keys[1], method=None, maxsteps=10)
+    prob.get_J(result, nsims=len(result.s_MAP_sims)+10, rng=keys[2], method=None)
 
-    assert result.θ.size == 1
-    assert np.linalg.norm(result.θ - θ_true) < 0.1
-
+    assert result.θ.shape == ()
+    assert result.Σ.shape == (1,1)
+    assert result.dist.cdf(ravel(θ_true)) > 0.01
 
 
 def test_ravel_jax():
 
     class JaxFunnelMuseProblem(JittedJaxMuseProblem):
-    
+
         def __init__(self, N):
             super().__init__()
             self.N = N
 
-        def sample_x_z(self, rng, θ):
+        def sample_x_z(self, key, θ):
             (θ1, θ2) = (θ["θ1"], θ["θ2"])
-            z1 = rng.randn(self.N) * np.exp(θ1/2)
-            z2 = rng.randn(self.N) * np.exp(θ2/2)        
-            x1 = z1 + rng.randn(self.N)
-            x2 = z2 + rng.randn(self.N)        
-            return ({"x1":x1, "x2":x2}, {"z1":z1, "z2":z2})
+            keys = jax.random.split(key, 4)
+            z1 = jax.random.normal(keys[0], (self.N,)) * np.exp(θ1/2)
+            z2 = jax.random.normal(keys[1], (self.N,)) * np.exp(θ2/2)        
+            x1 = z1 + jax.random.normal(keys[2], (self.N,))
+            x2 = z2 + jax.random.normal(keys[3], (self.N,))        
+            return XZSample(x={"x1":x1, "x2":x2}, z={"z1":z1, "z2":z2})
 
         def logLike(self, x, z, θ):
             return (
@@ -165,16 +169,18 @@ def test_ravel_jax():
         def logPrior(self, θ):
             return - θ["θ1"]**2 / (2*3**2) - θ["θ2"]**2 / (2*3**2)
 
-
-    θ_true = {"θ1":-1., "θ2":3.}
+    θ_true = {"θ1":-1., "θ2":2.}
     θ_start = {"θ1":0., "θ2":0.}
 
     prob = JaxFunnelMuseProblem(512)
-    rng = np.random.RandomState(0)
-    prob.x = prob.sample_x_z(rng, θ_true)[0]
+    ravel, unravel = prob._ravel_unravel(θ_true)
+    keys = prob._split_rng(jax.random.PRNGKey(0), 3)
+    (x, z) = prob.sample_x_z(keys[0], θ_true)
+    prob.x = x
 
-    result = prob.solve(θ_start=θ_start, rng=rng, gradz_logLike_atol=1e-4, maxsteps=10)
+    result = prob.solve(θ_start=θ_start, rng=keys[1], method=None, maxsteps=10)
+    prob.get_J(result, nsims=len(result.s_MAP_sims)+10, rng=keys[2], method=None)
 
-    ravel = prob._ravel_unravel(θ_true)[0]
-    assert isinstance(result.θ, dict)
-    assert np.linalg.norm(ravel(result.θ) - ravel(θ_true)) < 0.2
+    assert isinstance(result.θ, dict) and result.θ["θ1"].shape == result.θ["θ2"].shape == ()
+    assert result.Σ.shape == (2,2)
+    assert result.dist.cdf(ravel(θ_true)) > 0.01

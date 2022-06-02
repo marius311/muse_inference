@@ -1,7 +1,9 @@
 
 import numpy as np
 
-def pjacobian(f, x, ε, pmap=map, pbar=None):
+def pjacobian(f, x, step, pmap=map, pbar=None):
+
+    step = step + np.array(0 * x) # make array if scalar
 
     def column(i):
     
@@ -12,6 +14,6 @@ def pjacobian(f, x, ε, pmap=map, pbar=None):
             if pbar: pbar.update()
             return v
 
-        return (v(ε) - v(-ε)) / (2 * ε)
+        return (v(step[i]) - v(-step[i])) / (2 * step[i])
 
     return np.array(list(pmap(column, range(len(x)))))
