@@ -57,7 +57,7 @@ class MuseProblem():
         self.x = None
         self.np = np
 
-    def standardizeθ(self, θ):
+    def standardize_θ(self, θ):
         return θ
 
     def transform_θ(self, θ):
@@ -159,6 +159,13 @@ class MuseProblem():
         elif isinstance(x, Number):
             ravel = lambda val: np.array([val])
             unravel = lambda vec: vec.item()
+        elif isinstance(x, dict):
+            sorted_keys = sorted(x.keys())
+            ravel_to_tup = lambda dct: tuple(dct[k] for k in sorted_keys)
+            unravel_from_tup = lambda tup: {k: v for (k, v) in zip(sorted_keys, tup)}
+            ravel_from_tup, unravel_to_tup = self._ravel_unravel(ravel_to_tup(x))
+            ravel = lambda dct: ravel_from_tup(ravel_to_tup(dct))
+            unravel = lambda vec: unravel_from_tup(unravel_to_tup(vec))
         else:
             ravel = unravel = lambda z: z
         return (ravel, unravel)
@@ -196,14 +203,15 @@ class MuseProblem():
             result = MuseResult()
         if rng is None:
             rng = SeedSequence()
-        if z0 is None:
-            z0 = self.sample_x_z(self._split_rng(rng,1)[0], θ_start).z
 
         s_MAP_tol = s_MAP_tol_initial
 
         MAP_history_dat = MAP_history_sims = None
-        θunreg = θ = result.θ if result.θ is not None else θ_start
+        θunreg = θ = self.standardize_θ(result.θ if result.θ is not None else θ_start)
         θ̃unreg = θ̃ = self.transform_θ(θ)
+
+        if z0 is None:
+            z0 = self.sample_x_z(self._split_rng(rng,1)[0], θ).z
 
         ravel, unravel = self._ravel_unravel(θ̃)
         Nθ = len(ravel(θ̃))
@@ -327,21 +335,20 @@ class MuseProblem():
             pbar = tqdm(total=nsims_remaining, desc="get_J") if progress else None
             t0 = datetime.now()
 
-            xz_sims = [self.sample_x_z(_rng, θ0) for _rng in self._split_rng(rng, nsims_remaining)]
-
-            def get_g(x_z):
+            def get_s_MAP(x_z):
                 try:
-                    x, z = x_z
-                    result = self.gradθ_logLike_at_zMAP(x, z, θ0, method=method, θ_tol=s_MAP_tol)
-                    if progress: pbar.update()
-                    return result.s
+                    return self.gradθ_logLike_at_zMAP(*x_z, θ0, method=method, θ_tol=s_MAP_tol).s
                 except Exception:
                     if skip_errors:
                         return None
                     else:
                         raise
+                finally:
+                    if progress: 
+                        pbar.update()
 
-            result.s_MAP_sims.extend(g for g in pmap(get_g, xz_sims) if g is not None)
+            sims = [self.sample_x_z(_rng, θ0) for _rng in self._split_rng(rng, nsims_remaining)]
+            result.s_MAP_sims.extend(s for s in pmap(get_s_MAP, sims) if s is not None)
 
             result.time += datetime.now() - t0
 
@@ -386,47 +393,46 @@ class MuseProblem():
 
             # default to finite difference step size of 0.1σ with σ roughly
             # estimated from s_MAP_sims sims, if we have them
-            if step is None and len(result.s_MAP_sims) > 0:
-                step = 0.1 / np.std(np.stack(list(map(ravel, result.s_MAP_sims))), axis=0)
+            if step is None:
+                if len(result.s_MAP_sims) > 0:
+                    step = 0.1 / np.std(np.stack(list(map(ravel, result.s_MAP_sims))), axis=0)
+                else:
+                    step = 1e-5
 
             pbar = tqdm(total=nsims_remaining*(2*Nθ+1), desc="get_H") if progress else None
             t0 = datetime.now()
 
-            # generate simulations
-            xz_sims = [self.sample_x_z(_rng, θ0) for _rng in self._split_rng(rng, nsims_remaining)]
-
-            # initial fit at fiducial, used at starting points for finite difference below
-            def get_zMAP(x_z):
-                x, z = x_z
-                result = self.gradθ_logLike_at_zMAP(x, z, θ0, method=method, θ_tol=s_MAP_tol)
-                if progress: pbar.update()
-                return result.z
-            zMAPs_fid = pmap(get_zMAP, xz_sims)
-
             # finite difference Jacobian
             # pmap_sims, pmap_jac = (pmap_over == :jac || (pmap_over == :auto && length(θ₀) > nsims_remaining)) ? (_map, pmap) : (pmap, _map)
-            def _get_H(args):
-                x, zMAPfid, rng = args
-                
-                def get_sMAP(θvec):
+            def get_H(args):
+
+                (x, z), rng = args
+                # for each sim, do one fit at fiducial which we'll
+                # reuse as a starting point when fudging θ by +/-ϵ 
+                z_guess = self.gradθ_logLike_at_zMAP(x, z, θ0, method=method, θ_tol=s_MAP_tol).z
+                if progress: pbar.update()
+
+                def get_s_MAP(θvec):
                     θ = unravel(θvec)
-                    x = self.sample_x_z(copy(rng), θ)[0]
-                    return ravel(self.gradθ_logLike_at_zMAP(x, zMAPfid, θ0, method=method, θ_tol=s_MAP_tol).s)
+                    x = self.sample_x_z(copy(rng), θ).x
+                    return ravel(self.gradθ_logLike_at_zMAP(x, z_guess, θ0, method=method, θ_tol=s_MAP_tol).s)
 
                 try:
-                    return pjacobian(get_sMAP, ravel(θ0), step, pbar=pbar)
+                    return pjacobian(get_s_MAP, ravel(θ0), step, pbar=pbar)
                 except Exception:
                     if skip_errors:
                         return None
                     else:
                         raise
 
-            x_zMAPfid_rngs = zip([sim.x for sim in xz_sims], zMAPs_fid, self._split_rng(rng, nsims))
-            result.Hs.extend(H for H in map(_get_H, x_zMAPfid_rngs) if H is not None)
+            # generate simulations
+            sims = ((self.sample_x_z(_rng, θ0), _rng) for _rng in self._split_rng(rng, nsims_remaining))
+            result.Hs.extend(H for H in map(get_H, sims) if H is not None)
             
             result.time += datetime.now() - t0
 
         result.H = np.mean(np.array(result.Hs), axis=0)
         result.finalize(self)
         return result
+
 

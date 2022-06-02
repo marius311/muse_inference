@@ -3,17 +3,19 @@
 # special thanks to Junpeng Lao
 
 from copy import copy
+from numbers import Number
 
 import aesara
 import aesara.tensor as at
 import arviz as az
 import numpy as np
 import scipy.stats as st
-import pymc as pm
-from pymc.distributions import joint_logpt
 from scipy.optimize import minimize
 
-from .muse_inference import MuseProblem, XZSample, ScoreAndMAP
+import pymc as pm
+from pymc.distributions import joint_logpt
+
+from .muse_inference import MuseProblem, ScoreAndMAP, XZSample
 
 
 class PyMCMuseProblem(MuseProblem):
@@ -40,10 +42,10 @@ class PyMCMuseProblem(MuseProblem):
         # (x,z,θ). the x have observed values, the θ are paramaters
         # with no parent, and remaining free variables are z
         model_graph = pm.model_graph.ModelGraph(model)
-        if params: 
-            θ_RVs = [var for var in model.basic_RVs if var.name in params]
+        if params:
+            self.θ_RVs = θ_RVs = [var for var in model.basic_RVs if var.name in params]
         else:
-            θ_RVs = [var for var in model.basic_RVs if model_graph.get_parents(var) == set()]
+            self.θ_RVs = θ_RVs = [var for var in model.basic_RVs if model_graph.get_parents(var) == set()]
         x_RVs = self.model.observed_RVs
         z_RVs = [var for var in model.free_RVs if var not in θ_RVs]
         x_vals = [rvs_to_values[v] for v in x_RVs]
@@ -65,45 +67,63 @@ class PyMCMuseProblem(MuseProblem):
             self._has_θ_transform = False
             forward_transform = backward_transform = lambda val, x: x
 
+        # create variables for the raveled versions of the RVs and vals that we will need
+        z_vals_vec, z_vals_unvec = self._ravel_unravel_tensors(z_vals, "z_vals_vec", is_RV=False)
+        θ_vals_vec, θ_vals_unvec = self._ravel_unravel_tensors(θ_vals, "θ_vals_vec", is_RV=False)
+        θ_RVs_vec,  θ_RVs_unvec  = self._ravel_unravel_tensors(θ_RVs,  "θ_RVs_vec",  is_RV=True)
+
         # θ transforms
-        self._transform_θ     = aesara.function(θ_vals, [forward_transform(val, val)  for val in θ_vals])
-        self._inv_transform_θ = aesara.function(θ_vals, [backward_transform(val, val) for val in θ_vals])
+        self._transform_θ = aesara.function(
+            [θ_vals_vec], 
+            aesara.clone_replace(cat_flatten([forward_transform(val, val)  for val in θ_vals]), dict(zip(θ_vals, θ_vals_unvec)))
+        )
+        self._inv_transform_θ = aesara.function(
+            [θ_vals_vec],
+            aesara.clone_replace(cat_flatten([backward_transform(val, val) for val in θ_vals]), dict(zip(θ_vals, θ_vals_unvec)))
+        )
 
-        # create function for sampling x and transformed + raveled z given untransformed θ
-        z_RVs_trans_vec = at.concatenate([forward_transform(val, rv) for (rv,val) in zip(z_RVs, z_vals)], axis=0)
-        self._sample_x_z = aesara.function(θ_RVs, x_RVs + [z_RVs_trans_vec])
-
-        # create variables for the raveled versions of all the z and θ variables
-        z_vec, z_unvec = self._ravel_unravel_tensors(z_vals, "z_vec")
-        θ_vec, θ_unvec = self._ravel_unravel_tensors(θ_vals, "θ_vec")
+        # create function for sampling x and transformed + raveled z given untransformed + raveled θ
+        z_RVs_trans_vec = cat_flatten([forward_transform(val, rv) for (rv,val) in zip(z_RVs, z_vals)])
+        self._sample_x_z = aesara.function(
+            [θ_RVs_vec], 
+            aesara.clone_replace(x_RVs + [z_RVs_trans_vec], dict(zip(θ_RVs, θ_RVs_unvec)))
+        )
 
         # create necessary functions, gradients, and hessians, in
         # terms of the transformed + raveled z and transformed or
         # untransformed + raveled θ
         def get_gradients(θ_unvec):
-            logpt_vec = aesara.clone_replace(logpt, dict(zip(z_vals+θ_vals, z_unvec+θ_unvec)))
+            logpt_vec = aesara.clone_replace(logpt, dict(zip(z_vals+θ_vals, z_vals_unvec+θ_unvec)))
             logpriort_vec = aesara.clone_replace(logpriort, dict(zip(θ_vals, θ_unvec)))
 
-            dθlogpt_vec = aesara.grad(logpt_vec, wrt=θ_vec)
-            dzlogpt_vec = aesara.grad(logpt_vec, wrt=z_vec)
-            dlogpriort_vec = aesara.grad(logpriort_vec, wrt=θ_vec)
-            d2logpriort_vec = aesara.gradient.hessian(logpriort_vec, wrt=θ_vec)
+            dθlogpt_vec = aesara.grad(logpt_vec, wrt=θ_vals_vec)
+            dzlogpt_vec = aesara.grad(logpt_vec, wrt=z_vals_vec)
+            dlogpriort_vec = aesara.grad(logpriort_vec, wrt=θ_vals_vec)
+            d2logpriort_vec = aesara.gradient.hessian(logpriort_vec, wrt=θ_vals_vec)
 
-            logp_dzθlogp = aesara.function(x_vals + [z_vec, θ_vec], [logpt_vec, dzlogpt_vec, dθlogpt_vec])
-            dlogprior_d2logprior = aesara.function([θ_vec], [dlogpriort_vec, d2logpriort_vec])
+            logp_dzθlogp = aesara.function(x_vals + [z_vals_vec, θ_vals_vec], [logpt_vec, dzlogpt_vec, dθlogpt_vec])
+            dlogprior_d2logprior = aesara.function([θ_vals_vec], [dlogpriort_vec, d2logpriort_vec])
 
             return logp_dzθlogp, dlogprior_d2logprior
 
-        θ_unvec_untrans = [forward_transform(val, x) for (val, x) in zip(θ_vals, θ_unvec)]
-        self._logp_dzθlogp_transθ,   self._dlogprior_d2logprior_transθ   = get_gradients(θ_unvec)
+        θ_unvec_untrans = [forward_transform(val, x) for (val, x) in zip(θ_vals, θ_vals_unvec)]
+        self._logp_dzθlogp_transθ,   self._dlogprior_d2logprior_transθ   = get_gradients(θ_vals_unvec)
         self._logp_dzθlogp_untransθ, self._dlogprior_d2logprior_untransθ = get_gradients(θ_unvec_untrans)
 
+    def standardize_θ(self, θ):
+        is_scalar_θ = len(self.θ_RVs) == 1 and aesara.function([], self.θ_RVs[0].size)() == 1
+        if isinstance(θ, Number) and is_scalar_θ:
+            return [θ]
+        elif isinstance(θ, dict):
+            return self.np.concatenate([θ[var.name] for var in self.θ_RVs], axis=None)
+        else:
+            raise Exception("θ should be a dict with keys: " + ", ".join([var.name for var in self.θ_RVs]))
 
     def transform_θ(self, θ):
-        return self._transform_θ(*np.atleast_1d(θ))
+        return self._transform_θ(np.atleast_1d(θ))
 
     def inv_transform_θ(self, θ):
-        return self._inv_transform_θ(*np.atleast_1d(θ))
+        return self._inv_transform_θ(np.atleast_1d(θ))
 
     def has_θ_transform(self):
         return self._has_θ_transform
@@ -118,22 +138,27 @@ class PyMCMuseProblem(MuseProblem):
             state = self.model.next_rng().get_value(borrow=True).get_state()
             self.model.rng_seq.pop() # the call to next_rng undesiredly (for this) added it to rng_seq, so remove it
             rng.get_value(borrow=True).set_state(state)
-        *x, z = self._sample_x_z(*np.atleast_1d(θ))
+        *x, z = self._sample_x_z(np.atleast_1d(θ))
         return XZSample(x, z)
 
     def gradθ_and_hessθ_logPrior(self, θ, transformed_θ):
         _dlogprior_d2logprior = self._dlogprior_d2logprior_transθ if transformed_θ else self._dlogprior_d2logprior_untransθ
         return _dlogprior_d2logprior(np.atleast_1d(θ))
 
-    def _ravel_unravel_tensors(self, RVs, name):
-        RVs_raveled = at.vector(name=name)
-        test_point = self.model.recompute_initial_point()
-        RVs_val = [test_point[v.name] for v in RVs]
-        split_point = np.cumsum([0] + [v.size for v in RVs_val])
-        RVs_unraveled = []
-        for (i, val) in enumerate(RVs_val):
-            RVs_unraveled.append(at.reshape(RVs_raveled[split_point[i]:split_point[i+1]], val.shape))
-        return RVs_raveled, RVs_unraveled
+    def _ravel_unravel_tensors(self, tensors, name, is_RV=True):
+        tensors_raveled = at.vector(name=name)
+        if is_RV:
+            shapes = [aesara.function([], RV.shape)() for RV in tensors]
+            sizes  = [aesara.function([], RV.size)() for RV in tensors]
+        else:
+            test_point = self.model.recompute_initial_point()
+            shapes = [test_point[v.name].shape for v in tensors]
+            sizes  = [test_point[v.name].size  for v in tensors]
+        split_point = np.cumsum([0] + sizes)
+        tensors_unraveled = []
+        for (i, shape) in enumerate(shapes):
+            tensors_unraveled.append(at.reshape(tensors_raveled[split_point[i]:split_point[i+1]], shape))
+        return tensors_raveled, tensors_unraveled
 
     def _split_rng(self, rng: np.random.SeedSequence, N):
         return [np.random.RandomState(s) for s in copy(rng).generate_state(N)]
@@ -167,3 +192,6 @@ def unconditioned_logpt(model, jacobian: bool = True):
     logpt = joint_logpt(list(rvs_to_values.keys()), rvs_to_values, sum=True, jacobian=jacobian)
     return rvs_to_values, logpt
 
+
+def cat_flatten(tensors):
+    return at.concatenate([at.flatten(t) for t in tensors], axis=0)
