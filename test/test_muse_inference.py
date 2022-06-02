@@ -8,8 +8,10 @@ from numbers import Number
 import jax
 import jax.numpy as jnp
 import numpy as np
-from muse_inference import MuseProblem, MuseResult, XZSample, ScoreAndMAP
+import pymc as pm
+from muse_inference import MuseProblem, MuseResult, ScoreAndMAP, XZSample
 from muse_inference.jax import JaxMuseProblem, JittedJaxMuseProblem
+from muse_inference.pymc import PyMCMuseProblem
 
 
 def test_scalar_numpy():
@@ -181,3 +183,28 @@ def test_ravel_jax():
     assert isinstance(result.θ, dict) and result.θ["θ1"].shape == result.θ["θ2"].shape == ()
     assert result.Σ.shape == (2,2)
     assert result.dist.cdf(ravel(θ_true)) > 0.01
+
+
+def test_scalar_pymc():
+
+    def gen_funnel(x=None, θ=None, rng_seeder=None):
+        with pm.Model(rng_seeder=rng_seeder) as funnel:
+            θ = pm.Normal("θ", mu=0, sigma=3) if θ is None else θ
+            z = pm.Normal("z", mu=0, sigma=np.exp(θ/2), size=512)
+            x = pm.Normal("x", mu=z, sigma=1, observed=x)
+        return funnel
+
+    θ_true = 1.
+    θ_start = 0.
+
+    rng = np.random.RandomState(0)
+    x_obs = pm.sample_prior_predictive(1, model=gen_funnel(θ=θ_true, rng_seeder=rng)).prior.x[0,0]
+    funnel = gen_funnel(x_obs)
+    prob = PyMCMuseProblem(funnel)
+
+    result = prob.solve(θ_start=θ_start, rng=np.random.SeedSequence(1))
+    prob.get_J(result, nsims=len(result.s_MAP_sims)+10, rng=np.random.SeedSequence(2))
+
+    # assert isinstance(result.θ, Number)
+    assert result.Σ.shape == (1,1)
+    assert result.dist.cdf(θ_true) > 0.01
