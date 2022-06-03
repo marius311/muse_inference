@@ -3,95 +3,162 @@
 # special thanks to Junpeng Lao
 
 from copy import copy
+from numbers import Number
 
 import aesara
 import aesara.tensor as at
 import arviz as az
 import numpy as np
 import scipy.stats as st
+from scipy.optimize import minimize
 
 import pymc as pm
 from pymc.distributions import joint_logpt
 
-from . import MuseProblem
+from .muse_inference import MuseProblem, ScoreAndMAP, XZSample
 
 
 class PyMCMuseProblem(MuseProblem):
 
-    def __init__(self, model):
+    def __init__(self, model, params=None):
 
         super().__init__()
         
+        # dev note: "RVs" are the Aesara tensor variables PyMC uses for
+        # simulation. "vals" are the (possibly transformed) Aesara
+        # tensor variables PyMC uses for posterior evaluation, and
+        # which are tagged with the transform function
+
         self.model = model
 
         # extract/save actual observed data
         self.x = [model.rvs_to_values[v].data for v in model.observed_RVs]
 
+        # get log-posterior density, removing conditioning on x so we
+        # can swap in other values later
+        rvs_to_values, logpt = unconditioned_logpt(model)
+
         # automatically figure out which variables correspond to
         # (x,z,θ). the x have observed values, the θ are paramaters
         # with no parent, and remaining free variables are z
         model_graph = pm.model_graph.ModelGraph(model)
-        self.x_RVs = self.model.observed_RVs
-        self.θ_RVs = [var for var in model.basic_RVs if model_graph.get_parents(var) == set()]
-        self.z_RVs = [var for var in model.free_RVs if var not in self.θ_RVs]
+        if params:
+            self.θ_RVs = θ_RVs = [var for var in model.basic_RVs if var.name in params]
+        else:
+            self.θ_RVs = θ_RVs = [var for var in model.basic_RVs if model_graph.get_parents(var) == set()]
+        x_RVs = self.model.observed_RVs
+        z_RVs = [var for var in model.free_RVs if var not in θ_RVs]
+        x_vals = [rvs_to_values[v] for v in x_RVs]
+        θ_vals = [rvs_to_values[v] for v in θ_RVs]
+        z_vals = [rvs_to_values[v] for v in z_RVs]
 
-        # create function for sampling given θ
-        self._sample_x_z = aesara.function(self.θ_RVs, self.x_RVs + self.z_RVs)
+        # get log-prior density
+        logpriort = at.sum([logpt.sum() for (logpt, var) in zip(model.logpt(sum=False, jacobian=True), model.basic_RVs) if var in θ_RVs])
 
-        # remove conditioning on observed variables so everything is free
-        rvs_to_values, logpt = unconditioned_logpt(model)
+        # figure out if any transforms are needed and if so, create
+        # functions to apply forward or backward transformation stored
+        # in val to the variable x, accounting for case where val has
+        # no transform
+        if any(hasattr(val.tag, "transform") for val in z_vals+θ_vals):
+            self._has_θ_transform = True
+            forward_transform  = lambda val, x: val.tag.transform.forward(x)  if hasattr(val.tag, "transform") else x
+            backward_transform = lambda val, x: val.tag.transform.backward(x) if hasattr(val.tag, "transform") else x
+        else:
+            self._has_θ_transform = False
+            forward_transform = backward_transform = lambda val, x: x
 
-        # create variables for the raveled versions of all the z and θ variables
-        z_RV_vals = [rvs_to_values[v] for v in self.z_RVs]
-        z_RVs_raveled, z_RVs_unraveled = self._ravel_unravel_RVs(z_RV_vals, "z_raveled")
-        θ_RV_vals = [rvs_to_values[v] for v in self.θ_RVs]
-        θ_RVs_raveled, θ_RVs_unraveled = self._ravel_unravel_RVs(θ_RV_vals, "θ_raveled")
-        
-        # create likelihood function and gradients in terms of the raveled z and θ
-        raveled_logpt = aesara.clone_replace(logpt, dict(zip(z_RV_vals+θ_RV_vals, z_RVs_unraveled+θ_RVs_unraveled)))
-        raveled_inputs = [rvs_to_values[v] for v in self.x_RVs] + [z_RVs_raveled, θ_RVs_raveled]
-        dθlogpt = aesara.grad(raveled_logpt, wrt=θ_RVs_raveled)
-        dzlogpt = aesara.grad(raveled_logpt, wrt=z_RVs_raveled)
-        self._dθlogp = aesara.function(raveled_inputs, dθlogpt)
-        self._logp_dzlogp = aesara.function(raveled_inputs, [raveled_logpt, dzlogpt])
-        
-        # create prior gradient and hessian in terms of the raveled z and θ
-        logpriort = at.sum([logpt.sum() for (logpt, var) in zip(model.logpt(sum=False), model.basic_RVs) if var in self.θ_RVs])
-        raveled_logpriort = aesara.clone_replace(logpriort, dict(zip(θ_RV_vals, θ_RVs_unraveled)))
-        dlogpriort = aesara.grad(raveled_logpriort, wrt=θ_RVs_raveled)
-        d2logpriort = aesara.gradient.hessian(raveled_logpriort, wrt=θ_RVs_raveled)
-        self._dlogprior_d2logprior = aesara.function([θ_RVs_raveled], [dlogpriort, d2logpriort])
+        # create variables for the raveled versions of the RVs and vals that we will need
+        z_vals_vec, z_vals_unvec = self._ravel_unravel_tensors(z_vals, "z_vals_vec", is_RV=False)
+        θ_vals_vec, θ_vals_unvec = self._ravel_unravel_tensors(θ_vals, "θ_vals_vec", is_RV=False)
+        θ_RVs_vec,  θ_RVs_unvec  = self._ravel_unravel_tensors(θ_RVs,  "θ_RVs_vec",  is_RV=True)
 
+        # θ transforms
+        self._transform_θ = aesara.function(
+            [θ_vals_vec], 
+            aesara.clone_replace(cat_flatten([forward_transform(val, val)  for val in θ_vals]), dict(zip(θ_vals, θ_vals_unvec)))
+        )
+        self._inv_transform_θ = aesara.function(
+            [θ_vals_vec],
+            aesara.clone_replace(cat_flatten([backward_transform(val, val) for val in θ_vals]), dict(zip(θ_vals, θ_vals_unvec)))
+        )
+
+        # create function for sampling x and transformed + raveled z given untransformed + raveled θ
+        z_RVs_trans_vec = cat_flatten([forward_transform(val, rv) for (rv,val) in zip(z_RVs, z_vals)])
+        self._sample_x_z = aesara.function(
+            [θ_RVs_vec], 
+            aesara.clone_replace(x_RVs + [z_RVs_trans_vec], dict(zip(θ_RVs, θ_RVs_unvec)))
+        )
+
+        # create necessary functions, gradients, and hessians, in
+        # terms of the transformed + raveled z and transformed or
+        # untransformed + raveled θ
+        def get_gradients(θ_unvec):
+            logpt_vec = aesara.clone_replace(logpt, dict(zip(z_vals+θ_vals, z_vals_unvec+θ_unvec)))
+            logpriort_vec = aesara.clone_replace(logpriort, dict(zip(θ_vals, θ_unvec)))
+
+            dθlogpt_vec = aesara.grad(logpt_vec, wrt=θ_vals_vec)
+            dzlogpt_vec = aesara.grad(logpt_vec, wrt=z_vals_vec)
+            dlogpriort_vec = aesara.grad(logpriort_vec, wrt=θ_vals_vec)
+            d2logpriort_vec = aesara.gradient.hessian(logpriort_vec, wrt=θ_vals_vec)
+
+            logp_dzθlogp = aesara.function(x_vals + [z_vals_vec, θ_vals_vec], [logpt_vec, dzlogpt_vec, dθlogpt_vec])
+            dlogprior_d2logprior = aesara.function([θ_vals_vec], [dlogpriort_vec, d2logpriort_vec])
+
+            return logp_dzθlogp, dlogprior_d2logprior
+
+        θ_unvec_untrans = [forward_transform(val, x) for (val, x) in zip(θ_vals, θ_vals_unvec)]
+        self._logp_dzθlogp_transθ,   self._dlogprior_d2logprior_transθ   = get_gradients(θ_vals_unvec)
+        self._logp_dzθlogp_untransθ, self._dlogprior_d2logprior_untransθ = get_gradients(θ_unvec_untrans)
+
+    def standardize_θ(self, θ):
+        is_scalar_θ = len(self.θ_RVs) == 1 and aesara.function([], self.θ_RVs[0].size)() == 1
+        if isinstance(θ, Number) and is_scalar_θ:
+            return [θ]
+        elif isinstance(θ, dict):
+            return self.np.concatenate([θ[var.name] for var in self.θ_RVs], axis=None)
+        else:
+            raise Exception("θ should be a dict with keys: " + ", ".join([var.name for var in self.θ_RVs]))
+
+    def transform_θ(self, θ):
+        return self._transform_θ(np.atleast_1d(θ))
+
+    def inv_transform_θ(self, θ):
+        return self._inv_transform_θ(np.atleast_1d(θ))
+
+    def has_θ_transform(self):
+        return self._has_θ_transform
+
+    def logLike_and_gradzθ_logLike(self, x, z_vec, θ_vec, transformed_θ):
+        _logp_dzθlogp = self._logp_dzθlogp_transθ if transformed_θ else self._logp_dzθlogp_untransθ
+        return _logp_dzθlogp(*x, z_vec, np.atleast_1d(θ_vec))
 
     def sample_x_z(self, rng, θ):
         self.model.rng_seeder = rng
         for rng in self.model.rng_seq:
             state = self.model.next_rng().get_value(borrow=True).get_state()
-            self.model.rng_seq.pop() # the call to next_rng undesiredly (for this) added it to rng_seq
+            self.model.rng_seq.pop() # the call to next_rng undesiredly (for this) added it to rng_seq, so remove it
             rng.get_value(borrow=True).set_state(state)
-        x_z = self._sample_x_z(*np.atleast_1d(θ))
-        (x, z) = (x_z[:len(self.x_RVs)], x_z[len(self.x_RVs):])
-        ravel = self._ravel_unravel(z)[0]
-        return (x, ravel(z))
+        *x, z = self._sample_x_z(np.atleast_1d(θ))
+        return XZSample(x, z)
 
-    def gradθ_logLike(self, x, z, θ):
-        return self._dθlogp(*x, z, np.atleast_1d(θ))
+    def gradθ_and_hessθ_logPrior(self, θ, transformed_θ):
+        _dlogprior_d2logprior = self._dlogprior_d2logprior_transθ if transformed_θ else self._dlogprior_d2logprior_untransθ
+        return _dlogprior_d2logprior(np.atleast_1d(θ))
 
-    def logLike_and_gradz_logLike(self, x, z, θ):
-        return self._logp_dzlogp(*x, z, np.atleast_1d(θ))
-
-    def gradθ_and_hessθ_logPrior(self, θ):
-        return self._dlogprior_d2logprior(np.atleast_1d(θ))
-
-    def _ravel_unravel_RVs(self, RVs, name):
-        RVs_raveled = at.vector(name=name)
-        test_point = self.model.recompute_initial_point()
-        RVs_val = [test_point[v.name] for v in RVs]
-        split_point = np.cumsum([0] + [v.size for v in RVs_val])
-        RVs_unraveled = []
-        for (i, val) in enumerate(RVs_val):
-            RVs_unraveled.append(at.reshape(RVs_raveled[split_point[i]:split_point[i+1]], val.shape))
-        return RVs_raveled, RVs_unraveled
+    def _ravel_unravel_tensors(self, tensors, name, is_RV=True):
+        tensors_raveled = at.vector(name=name)
+        if is_RV:
+            shapes = [aesara.function([], RV.shape)() for RV in tensors]
+            sizes  = [aesara.function([], RV.size)() for RV in tensors]
+        else:
+            test_point = self.model.recompute_initial_point()
+            shapes = [test_point[v.name].shape for v in tensors]
+            sizes  = [test_point[v.name].size  for v in tensors]
+        split_point = np.cumsum([0] + sizes)
+        tensors_unraveled = []
+        for (i, shape) in enumerate(shapes):
+            tensors_unraveled.append(at.reshape(tensors_raveled[split_point[i]:split_point[i+1]], shape))
+        return tensors_raveled, tensors_unraveled
 
     def _split_rng(self, rng: np.random.SeedSequence, N):
         return [np.random.RandomState(s) for s in copy(rng).generate_state(N)]
@@ -125,3 +192,6 @@ def unconditioned_logpt(model, jacobian: bool = True):
     logpt = joint_logpt(list(rvs_to_values.keys()), rvs_to_values, sum=True, jacobian=jacobian)
     return rvs_to_values, logpt
 
+
+def cat_flatten(tensors):
+    return at.concatenate([at.flatten(t) for t in tensors], axis=0)

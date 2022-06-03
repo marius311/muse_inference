@@ -8,8 +8,10 @@ from numbers import Number
 import jax
 import jax.numpy as jnp
 import numpy as np
-from muse_inference import MuseProblem, MuseResult
+import pymc as pm
+from muse_inference import MuseProblem, MuseResult, ScoreAndMAP, XZSample
 from muse_inference.jax import JaxMuseProblem, JittedJaxMuseProblem
+from muse_inference.pymc import PyMCMuseProblem
 
 
 def test_scalar_numpy():
@@ -21,22 +23,19 @@ def test_scalar_numpy():
             self.N = N
         
         def sample_x_z(self, rng, θ):
-            z = rng.randn(self.N) * np.exp(θ/2)
-            x = z + rng.randn(self.N)
-            return (x, z)
+            z = rng.normal(size=self.N) * np.exp(θ/2)
+            x = z + rng.normal(size=self.N)
+            return XZSample(x, z)
         
-        def gradθ_logLike(self, x, z, θ):
-            return np.sum(z**2)/(2*np.exp(θ)) - self.N/2
-        
-        def logLike_and_gradz_logLike(self, x, z, θ):
+        def logLike_and_gradzθ_logLike(self, x, z, θ, transformed_θ=None):
             logLike = -(np.sum((x - z)**2) + np.sum(z**2) / np.exp(θ) + 512*θ) / 2
             gradz_logLike = x - z * (1 + np.exp(-θ))
-            return (logLike, gradz_logLike)
+            gradθ_logLike = np.sum(z**2)/(2*np.exp(θ)) - self.N/2
+            return (logLike, gradz_logLike, gradθ_logLike)
         
         def grad_hess_θ_logPrior(self, θ):
             return (-θ/(3**2), -1/3**2)
-        
-    
+
     θ_true = 1.
     θ_start = 0.
 
@@ -44,10 +43,12 @@ def test_scalar_numpy():
     rng = np.random.RandomState(0)
     prob.x = prob.sample_x_z(rng, θ_true)[0]
 
-    result = prob.solve(θ_start=θ_start, rng=rng, gradz_logLike_atol=1e-4, maxsteps=10)
+    result = prob.solve(θ_start=θ_start, rng=np.random.SeedSequence(1))
+    prob.get_J(result, nsims=len(result.s_MAP_sims)+10, rng=np.random.SeedSequence(2))
 
     assert isinstance(result.θ, Number)
-    assert np.linalg.norm(result.θ - θ_true) < 0.1
+    assert result.Σ.shape == (1,1)
+    assert result.dist.cdf(θ_true) > 0.01
 
 
 
@@ -62,99 +63,101 @@ def test_ravel_numpy():
         
         def sample_x_z(self, rng, θ):
             (θ1, θ2) = θ
-            z1 = rng.randn(self.N) * np.exp(θ1/2)
-            z2 = rng.randn(self.N) * np.exp(θ2/2)        
-            x1 = z1 + rng.randn(self.N)
-            x2 = z2 + rng.randn(self.N)        
-            return ((x1,x2), (z1,z2))
+            z1 = rng.normal(size=self.N) * np.exp(θ1/2)
+            z2 = rng.normal(size=self.N) * np.exp(θ2/2)        
+            x1 = z1 + rng.normal(size=self.N)
+            x2 = z2 + rng.normal(size=self.N)        
+            return XZSample((x1,x2), (z1,z2))
         
-        def gradθ_logLike(self, x, z, θ):
-            (θ1, θ2) = θ
-            (x1, x2) = x
-            (z1, z2) = z
-            return (np.sum(z1**2)/(2*np.exp(θ1)) - self.N/2, np.sum(z2**2)/(2*np.exp(θ2)) - self.N/2)
-        
-        def logLike_and_gradz_logLike(self, x, z, θ):
+        def logLike_and_gradzθ_logLike(self, x, z, θ, transformed_θ=None):
             (θ1, θ2) = θ
             (x1, x2) = x
             (z1, z2) = z
             logLike = -(np.sum((x1 - z1)**2) + np.sum(z1**2) / np.exp(θ1) + 512*θ1) / 2 -(np.sum((x2 - z2)**2) + np.sum(z2**2) / np.exp(θ2) + 512*θ2) / 2
             gradz_logLike = (x1 - z1 * (1 + np.exp(-θ1)), x2 - z2 * (1 + np.exp(-θ2)))
-            return (logLike, gradz_logLike)
+            gradθ_logLike = (np.sum(z1**2)/(2*np.exp(θ1)) - self.N/2, np.sum(z2**2)/(2*np.exp(θ2)) - self.N/2)
+            return (logLike, gradz_logLike, gradθ_logLike)
         
-        def gradθ_and_hessθ_logPrior(self, θ):
+        def gradθ_and_hessθ_logPrior(self, θ, transformed_θ=None):
             (θ1, θ2) = θ
             g = (-θ1/(3**2), -θ2/(3**2))
-            H = ((-1/3**2, 0),
-                (0,      -1/3**2))
-            return g, H    
+            H = (
+                (-1/3**2, 0),
+                (0,       -1/3**2)
+            )
+            return (g, H)
 
-
-    θ_true = (-1., 3.)
+    θ_true = (-1., 2.)
     θ_start = (0., 0.)
 
     prob = NumpyFunnelMuseProblem(512)
+    ravel, unravel = prob._ravel_unravel(θ_true)
     rng = np.random.RandomState(0)
     prob.x = prob.sample_x_z(rng, θ_true)[0]
 
-    result = prob.solve(θ_start=θ_start, rng=rng, gradz_logLike_atol=1e-4, maxsteps=40)
+    result = prob.solve(θ_start=θ_start, rng=np.random.SeedSequence(1))
+    prob.get_J(result, nsims=len(result.s_MAP_sims)+10, rng=np.random.SeedSequence(2))
 
-    ravel = prob._ravel_unravel(θ_true)[0]
 
     assert isinstance(result.θ, tuple)
-    assert np.linalg.norm(ravel(result.θ) - ravel(θ_true)) < 0.2
+    assert result.Σ.shape == (2,2)
+    assert result.dist.cdf(ravel(θ_true)) > 0.01
 
 
 
 def test_scalar_jax():
 
-    class JaxFunnelMuseProblem(JittedJaxMuseProblem):
-        
+    class JaxFunnelMuseProblem(JaxMuseProblem):
+
         def __init__(self, N):
             super().__init__()
             self.N = N
 
-        def sample_x_z(self, rng, θ):
-            z = rng.randn(self.N) * np.exp(θ/2)
-            x = z + rng.randn(self.N)
-            return (jnp.array(x), jnp.array(z))
+        def sample_x_z(self, key, θ):
+            keys = jax.random.split(key, 2)
+            z = jax.random.normal(keys[0], (self.N,)) * np.exp(θ/2)
+            x = z + jax.random.normal(keys[1], (self.N,))
+            return XZSample(x, z)
 
         def logLike(self, x, z, θ):
             return -(jnp.sum((x - z)**2) + jnp.sum(z**2) / jnp.exp(θ) + 512*θ) / 2
-        
+
         def logPrior(self, θ):
             return -θ**2 / (2*3**2)
-
 
     θ_true = 1.
     θ_start = 0.
 
     prob = JaxFunnelMuseProblem(512)
-    rng = np.random.RandomState(0)
-    prob.x = prob.sample_x_z(rng, θ_true)[0]
+    ravel, unravel = prob._ravel_unravel(θ_start)
+    keys = prob._split_rng(jax.random.PRNGKey(0), 3)
+    (x, z) = prob.sample_x_z(keys[0], θ_true)
+    prob.x = x
 
-    result = prob.solve(θ_start=θ_start, rng=rng, gradz_logLike_atol=1e-4, maxsteps=10)
+    result = prob.solve(θ_start=θ_start, rng=keys[1], method=None, maxsteps=10)
+    prob.get_J(result, nsims=len(result.s_MAP_sims)+10, rng=keys[2], method=None)
 
-    assert result.θ.size == 1
-    assert np.linalg.norm(result.θ - θ_true) < 0.1
-
+    assert result.θ.shape == ()
+    assert result.Σ.shape == (1,1)
+    assert result.dist.cdf(ravel(θ_true)) > 0.01
 
 
 def test_ravel_jax():
 
     class JaxFunnelMuseProblem(JittedJaxMuseProblem):
-    
+
         def __init__(self, N):
             super().__init__()
             self.N = N
 
-        def sample_x_z(self, rng, θ):
+        def sample_x_z(self, key, θ):
             (θ1, θ2) = (θ["θ1"], θ["θ2"])
-            z1 = rng.randn(self.N) * np.exp(θ1/2)
-            z2 = rng.randn(self.N) * np.exp(θ2/2)        
-            x1 = z1 + rng.randn(self.N)
-            x2 = z2 + rng.randn(self.N)        
-            return ({"x1":x1, "x2":x2}, {"z1":z1, "z2":z2})
+            keys = jax.random.split(key, 4)
+            z1 = jax.random.normal(keys[0], (self.N,)) * np.exp(θ1/2)
+            z2 = jax.random.normal(keys[1], (self.N,)) * np.exp(θ2/2)        
+            x1 = z1 + jax.random.normal(keys[2], (self.N,))
+            x2 = z2 + jax.random.normal(keys[3], (self.N,))        
+            return XZSample(x={"x1":x1, "x2":x2}, z={"z1":z1, "z2":z2})
 
         def logLike(self, x, z, θ):
             return (
@@ -165,16 +168,71 @@ def test_ravel_jax():
         def logPrior(self, θ):
             return - θ["θ1"]**2 / (2*3**2) - θ["θ2"]**2 / (2*3**2)
 
-
-    θ_true = {"θ1":-1., "θ2":3.}
+    θ_true = {"θ1":-1., "θ2":2.}
     θ_start = {"θ1":0., "θ2":0.}
 
     prob = JaxFunnelMuseProblem(512)
+    ravel, unravel = prob._ravel_unravel(θ_true)
+    keys = prob._split_rng(jax.random.PRNGKey(0), 3)
+    (x, z) = prob.sample_x_z(keys[0], θ_true)
+    prob.x = x
+
+    result = prob.solve(θ_start=θ_start, rng=keys[1], method=None, maxsteps=10)
+    prob.get_J(result, nsims=len(result.s_MAP_sims)+10, rng=keys[2], method=None)
+
+    assert isinstance(result.θ, dict) and result.θ["θ1"].shape == result.θ["θ2"].shape == ()
+    assert result.Σ.shape == (2,2)
+    assert result.dist.cdf(ravel(θ_true)) > 0.01
+
+
+def test_scalar_pymc():
+
+    def gen_funnel(x=None, θ=None, rng_seeder=None):
+        with pm.Model(rng_seeder=rng_seeder) as funnel:
+            θ = pm.Normal("θ", mu=0, sigma=3) if θ is None else θ
+            z = pm.Normal("z", mu=0, sigma=np.exp(θ/2), size=512)
+            x = pm.Normal("x", mu=z, sigma=1, observed=x)
+        return funnel
+
+    θ_true = 1.
+    θ_start = 0.
+
     rng = np.random.RandomState(0)
-    prob.x = prob.sample_x_z(rng, θ_true)[0]
+    x_obs = pm.sample_prior_predictive(1, model=gen_funnel(θ=θ_true, rng_seeder=rng)).prior.x[0,0]
+    funnel = gen_funnel(x_obs)
+    prob = PyMCMuseProblem(funnel)
 
-    result = prob.solve(θ_start=θ_start, rng=rng, gradz_logLike_atol=1e-4, maxsteps=10)
+    result = prob.solve(θ_start=θ_start, rng=np.random.SeedSequence(1))
+    prob.get_J(result, nsims=len(result.s_MAP_sims)+10, rng=np.random.SeedSequence(2))
 
-    ravel = prob._ravel_unravel(θ_true)[0]
-    assert isinstance(result.θ, dict)
-    assert np.linalg.norm(ravel(result.θ) - ravel(θ_true)) < 0.2
+    # assert isinstance(result.θ, Number)
+    assert result.Σ.shape == (1,1)
+    assert result.dist.cdf(θ_true) > 0.01
+
+
+def test_ravel_pymc():
+
+    def gen_funnel(x1=None, x2=None, θ1=None, θ2=None, rng_seeder=None):
+        with pm.Model(rng_seeder=rng_seeder) as funnel:
+            θ1 = pm.Normal("θ1", mu=0, sigma=3) if θ1 is None else θ1
+            θ2 = pm.Normal("θ2", mu=0, sigma=3) if θ2 is None else θ2
+            z1 = pm.Normal("z1", mu=0, sigma=np.exp(θ1/2), size=256)
+            z2 = pm.Normal("z2", mu=0, sigma=np.exp(θ2/2), size=(16,16))
+            x1 = pm.Normal("x1", mu=z1, sigma=1, observed=x1)
+            x2 = pm.Normal("x2", mu=z2, sigma=1, observed=x2)
+        return funnel
+
+    θ_true  = dict(θ1=-1, θ2=2)
+    θ_start = dict(θ1=0,  θ2=0)
+
+    rng = np.random.RandomState(0)
+    truth = pm.sample_prior_predictive(1, model=gen_funnel(rng_seeder=rng, **θ_true)).prior
+    funnel = gen_funnel(x1=truth.x1[0,0], x2=truth.x2[0,0])
+    prob = PyMCMuseProblem(funnel)
+
+    result = prob.solve(θ_start=θ_start, rng=np.random.SeedSequence(1))
+    prob.get_J(result, nsims=len(result.s_MAP_sims)+10, rng=np.random.SeedSequence(2))
+
+    # assert isinstance(result.θ, dict) and result.θ["θ1"].shape == result.θ["θ2"].shape == ()
+    assert result.Σ.shape == (2,2)
+    assert result.dist.cdf(prob.standardize_θ(θ_true)) > 0.01
