@@ -36,8 +36,10 @@ from muse_inference.pymc import PyMCMuseProblem
 %config InlineBackend.print_figure_kwargs = {'bbox_inches': 'tight', 'dpi': 110}
 %load_ext autoreload
 %autoreload 2
-import logging
+import logging, warnings
 logging.getLogger("pymc").setLevel(logging.FATAL)
+warnings.filterwarnings("ignore")
+
 ```
 
 As an example, consider the following hierarchical problem, which has the classic [Neal's Funnel](https://mc-stan.org/docs/2_18/stan-users-guide/reparameterization-section.html) problem embedded in it. Neal's funnel is a standard example of a non-Gaussian latent space which HMC struggles to sample efficiently without extra tricks. Specifically, we consider the model defined by:
@@ -69,12 +71,21 @@ x_obs = pm.sample_prior_predictive(1, model=gen_funnel(θ=0, rng=rng)).prior.x[0
 model = gen_funnel(x=x_obs, rng=rng)
 ```
 
+```python nbsphinx="hidden" tags=[]
+# warmup so timing results are more fair
+with model:
+    pm.sample(10, tune=10, cores=1, chains=1, discard_tuned_samples=False, random_seed=0, progressbar=False)
+    pm.fit(10, method="advi", obj_n_mc=10, tf_n_mc=10, progressbar=False)
+prob = PyMCMuseProblem(model)
+result = prob.solve(θ_start=0, nsims=10, maxsteps=2)
+```
+
 We can run HMC on the problem to compute the "true" answer to compare against:
 
 ```python
 with model:
     tic()
-    chain = pm.sample(500, tune=500, cores=1, chains=1, discard_tuned_samples=False)
+    chain = pm.sample(500, tune=500, cores=1, chains=1, discard_tuned_samples=False, random_seed=0)
     t_hmc = toc()
 ```
 
@@ -94,16 +105,16 @@ result = prob.solve(θ_start=0, nsims=nsims, rng=np.random.SeedSequence(1), prog
 t_muse = toc()
 ```
 
-Now lets plot the two estimates. In this case, MUSE gives a nearly perfect answer at a fraction of the computational cost.
-
-
-```python
-sum([soln.nfev for h in result.history for soln in [h["MAP_history_dat"]] + h["MAP_history_sims"]])
-```
+Lets also try mean-field variational inference (MFVI) to compare to another approximate method.
 
 ```python
-sum(chain.sample_stats["n_steps"]) + sum(chain.warmup_sample_stats["n_steps"])
+with model:
+    tic()
+    mfvi = pm.fit(10000, method="advi", obj_n_mc=10, tf_n_mc=10)
+    t_mfvi = toc()
 ```
+
+Now lets plot the differentestimates. In this case, MUSE gives a nearly perfect answer at a fraction of the computational cost. MFVI struggles in both speed and accuracy by comparison.
 
 ```python
 figure(figsize=(6,5))
@@ -118,11 +129,16 @@ plot(
     θs, stats.norm(result.θ, sqrt(result.Σ[0,0])).pdf(θs), 
     color="C1", label="MUSE (%.2fs)"%t_muse
 )
+hist(
+    mfvi.sample(1000)["posterior"]["θ"].to_series(), 
+    bins=30, density=True, alpha=0.5, color="C2",
+    label="MFVI (%.2fs)"%t_mfvi
+)
 legend()
 xlabel(r"$\theta$")
 ylabel(r"$\mathcal{P}(\theta\,|\,x)$")
 title("10000-dimensional noisy funnel");
 ```
 
-The timing difference is indicative of the speedups over HMC that are possible. These get even more dramatic as we increase dimensionality, and 1-3 orders of magnitude are not atypical for high-dimensional problems.
+The timing difference is indicative of the speedups over HMC that are possible. These get even more dramatic as we increase dimensionality, and several orders of magnitude are not atypical for high-dimensional problems.
 

@@ -151,7 +151,7 @@ class PyMCMuseProblem(MuseProblem):
             shapes = [aesara.function([], RV.shape)() for RV in tensors]
             sizes  = [aesara.function([], RV.size)() for RV in tensors]
         else:
-            test_point = self.model.recompute_initial_point()
+            test_point = self.model.compute_initial_point()
             shapes = [test_point[v.name].shape for v in tensors]
             sizes  = [test_point[v.name].size  for v in tensors]
         split_point = np.cumsum([0] + sizes)
