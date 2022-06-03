@@ -15,3 +15,7 @@ code, pre {
 .wy-nav-content {
   max-width: 57rem;
 }
+
+div.nboutput.container div.output_area.stderr {
+  background-color: inherit !important;
+}
