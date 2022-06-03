@@ -21,7 +21,8 @@
         <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" /> 
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="muse_inference" href="index.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -39,11 +40,11 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <!-- Local TOC -->
-              <div class="local-toc"><ul>
-<li><a class="reference internal" href="#">Example</a></li>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Example</a></li>
 </ul>
-</div>
+
         </div>
       </div>
     </nav>
@@ -445,7 +446,7 @@ NUTS: [θ, z]
 <div class="output_area rendered_html docutils container">
 <div>
   <progress value='1000' class='' max='1000' style='width:300px; height:20px; vertical-align: middle;'></progress>
-  100.00% [1000/1000 00:16<00:00 Sampling chain 0, 0 divergences]
+  100.00% [1000/1000 00:17<00:00 Sampling chain 0, 0 divergences]
 </div></div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -473,7 +474,7 @@ Only one chain was sampled, this makes it impossible to run some convergence che
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-83
+59
 </pre></div></div>
 </div>
 <p>Running the MUSE estimate,</p>
@@ -493,8 +494,8 @@ Only one chain was sampled, this makes it impossible to run some convergence che
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-MUSE: 100%|██████████| 5050/5050 [00:14&lt;00:00, 346.93it/s]
-get_H: 100%|██████████| 30/30 [00:00&lt;00:00, 46.88it/s]
+MUSE: 100%|██████████| 5050/5050 [00:15&lt;00:00, 322.84it/s]
+get_H: 100%|██████████| 30/30 [00:00&lt;00:00, 44.01it/s]
 </pre></div></div>
 </div>
 <p>Now lets plot the two estimates. In this case, MUSE gives a nearly perfect answer at a fraction of the computational cost.</p>
@@ -534,7 +535,9 @@ get_H: 100%|██████████| 30/30 [00:00&lt;00:00, 46.88it/s]
 
            </div>
           </div>
-          <footer>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="muse_inference" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
 
   <hr/>
 
