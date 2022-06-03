@@ -23,7 +23,7 @@ MUSE works on standard hierarchical problems, where the likelihood is of the for
 
 In our notation, :math:`x` are the observed variables (the "data"), :math:`z` are unobserved "latent" variables, and :math:`\theta` are some "hyperparameters" of interest. MUSE is applicable when the goal of the analysis is to estimate the hyperparameters, :math:`\theta`, but otherwise, the latent variables, :math:`z`, do not need to be inferred (only marginalized out via the integral above). 
 
-The only requirements to run MUSE on a particular problem are that forward simulations from :math:`\mathcal{P}(x,z\,|\,\theta)` can be generated, and gradients of the joint likelihood, :math:`\mathcal{P}(x,z\,|\,\theta)` with respect to :math:`z` and :math:`\theta` can be computed. The marginal likelihood is never required, so MUSE could be considered a form of Likelihood-Free Inference (LFI) / Simulation-Based Inference (SBI). 
+The only requirements to run MUSE on a particular problem are that forward simulations from :math:`\mathcal{P}(x,z\,|\,\theta)` can be generated, and gradients of the joint likelihood, :math:`\mathcal{P}(x,z\,|\,\theta)` with respect to :math:`z` and :math:`\theta` can be computed. The marginal likelihood is never required, so MUSE could be considered a form of LFI/SBI.
 
 
 .. toctree::
@@ -37,7 +37,7 @@ Indices and tables
 ==================
 
 * :ref:`genindex`
-* :ref:`modindex`
+.. * :ref:`modindex`
 * :ref:`search`
 
 .. |br| raw:: html

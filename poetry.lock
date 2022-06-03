@@ -8,20 +8,20 @@ python-versions = ">=3.6"
 
 [[package]]
 name = "aeppl"
-version = "0.0.18"
+version = "0.0.27"
 description = "PPL tools for Aesara"
 category = "main"
 optional = false
 python-versions = ">=3.6"
 
 [package.dependencies]
-aesara = ">=2.3.1"
+aesara = ">=2.3.2"
 numpy = ">=1.18.1"
 scipy = ">=1.4.0"
 
 [[package]]
 name = "aesara"
-version = "2.3.2"
+version = "2.5.1"
 description = "Optimizing compiler for evaluating mathematical expressions on CPUs and GPUs."
 category = "main"
 optional = false
@@ -35,6 +35,7 @@ logical-unification = "*"
 miniKanren = "*"
 numpy = ">=1.17.0"
 scipy = ">=0.14"
+typing_extensions = "*"
 
 [[package]]
 name = "alabaster"
@@ -1041,21 +1042,20 @@ python-versions = ">=3.6"
 
 [[package]]
 name = "pymc"
-version = "4.0.0b2"
+version = "4.0.0b6"
 description = "Probabilistic Programming in Python: Bayesian Modeling and Probabilistic Machine Learning with Aesara"
 category = "main"
 optional = false
 python-versions = ">=3.7"
 
 [package.dependencies]
-aeppl = "0.0.18"
-aesara = "2.3.2"
+aeppl = "0.0.27"
+aesara = "2.5.1"
 arviz = ">=0.11.4"
 cachetools = ">=4.2.1"
 cloudpickle = "*"
 fastprogress = ">=0.2.0"
-numpy = ">=1.15.0,<1.22.0"
-pandas = ">=0.24.0"
+numpy = ">=1.15.0"
 scipy = ">=1.4.1"
 typing-extensions = ">=3.7.4"
 
@@ -1413,7 +1413,7 @@ test = ["pre-commit", "pytest"]
 name = "ttictoc"
 version = "0.5.6"
 description = "Time parts of your code easily."
-category = "main"
+category = "dev"
 optional = false
 python-versions = "*"
 
@@ -1510,7 +1510,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.7,<3.11"
-content-hash = "7503bf41205ebc54761448bf81b69975b0cda5ea533f6de8a480e61111406dd1"
+content-hash = "f3258ee9834f2d4efcee76e17fd2ddfb25e330bb0d0f541bd36738163c5d1a89"
 
 [metadata.files]
 absl-py = [
@@ -1518,10 +1518,10 @@ absl-py = [
     {file = "absl_py-1.1.0-py3-none-any.whl", hash = "sha256:db97287655e30336938f8058d2c81ed2be6af1d9b6ebbcd8df1080a6c7fcd24e"},
 ]
 aeppl = [
-    {file = "aeppl-0.0.18.tar.gz", hash = "sha256:2346c985f07312275b17bfd22e847d4408f1f619ad11981faeb8e23d2fb94bb7"},
+    {file = "aeppl-0.0.27.tar.gz", hash = "sha256:94ef19bc817fd9f00922831bad18372966ca21cc7a1cd7dfd8df4d52d8a9da47"},
 ]
 aesara = [
-    {file = "aesara-2.3.2.tar.gz", hash = "sha256:ad893a461546b1747495fb278676633bb8e0adaa8b4e1b0bdfff2feb328d15e6"},
+    {file = "aesara-2.5.1.tar.gz", hash = "sha256:2532c2343f279e43008bc0983bcee3da8fba06b1e432db026cdbd9c2bb50a3f5"},
 ]
 alabaster = [
     {file = "alabaster-0.7.12-py2.py3-none-any.whl", hash = "sha256:446438bdcca0e05bd45ea2de1668c1d9b032e1a9154c2c259092d77031ddd359"},
@@ -2215,8 +2215,8 @@ pygments = [
     {file = "Pygments-2.12.0.tar.gz", hash = "sha256:5eb116118f9612ff1ee89ac96437bb6b49e8f04d8a13b514ba26f620208e26eb"},
 ]
 pymc = [
-    {file = "pymc-4.0.0b2-py3-none-any.whl", hash = "sha256:0ba71288e64afa79aa55d90aed79461c7ff868b18580cadf304961478746dd34"},
-    {file = "pymc-4.0.0b2.tar.gz", hash = "sha256:bbfe64cfecc5a1358f79b49e68874047463c2b79d5dd0d38652c334fdffe37b6"},
+    {file = "pymc-4.0.0b6-py3-none-any.whl", hash = "sha256:2735bb34855080ea0800b316d198618530a806d16b9b0f8ce86db4dd5c7bff26"},
+    {file = "pymc-4.0.0b6.tar.gz", hash = "sha256:73f24295a90132df641ad5e5140c02e988dbc8fd06ed9f1ac55b94d269efd7bf"},
 ]
 pyparsing = [
     {file = "pyparsing-3.0.9-py3-none-any.whl", hash = "sha256:5026bae9a10eeaefb61dab2f09052b9f4307d44aee4eda64b309723d8d206bbc"},
