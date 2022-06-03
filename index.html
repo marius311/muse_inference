@@ -102,7 +102,7 @@
 <div class="math notranslate nohighlight">
 \[\mathcal{P}(x\,|\,\theta) = \int {\rm d}z \, \mathcal{P}(x,z\,|\,\theta)\]</div>
 <p>In our notation, <span class="math notranslate nohighlight">\(x\)</span> are the observed variables (the “data”), <span class="math notranslate nohighlight">\(z\)</span> are unobserved “latent” variables, and <span class="math notranslate nohighlight">\(\theta\)</span> are some “hyperparameters” of interest. MUSE is applicable when the goal of the analysis is to estimate the hyperparameters, <span class="math notranslate nohighlight">\(\theta\)</span>, but otherwise, the latent variables, <span class="math notranslate nohighlight">\(z\)</span>, do not need to be inferred (only marginalized out via the integral above).</p>
-<p>The only requirements to run MUSE on a particular problem are that forward simulations from <span class="math notranslate nohighlight">\(\mathcal{P}(x,z\,|\,\theta)\)</span> can be generated, and gradients of the joint likelihood, <span class="math notranslate nohighlight">\(\mathcal{P}(x,z\,|\,\theta)\)</span> with respect to <span class="math notranslate nohighlight">\(z\)</span> and <span class="math notranslate nohighlight">\(\theta\)</span> can be computed. The marginal likelihood is never required, so MUSE could be considered a form of Likelihood-Free Inference (LFI) / Simulation-Based Inference (SBI).</p>
+<p>The only requirements to run MUSE on a particular problem are that forward simulations from <span class="math notranslate nohighlight">\(\mathcal{P}(x,z\,|\,\theta)\)</span> can be generated, and gradients of the joint likelihood, <span class="math notranslate nohighlight">\(\mathcal{P}(x,z\,|\,\theta)\)</span> with respect to <span class="math notranslate nohighlight">\(z\)</span> and <span class="math notranslate nohighlight">\(\theta\)</span> can be computed. The marginal likelihood is never required, so MUSE could be considered a form of LFI/SBI.</p>
 <div class="toctree-wrapper compound">
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
@@ -114,7 +114,8 @@
 <h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline"></a></h1>
 <ul class="simple">
 <li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
-<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
+</ul>
+<ul class="simple">
 <li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
 </ul>
 </section>
