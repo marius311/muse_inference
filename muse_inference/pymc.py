@@ -25,7 +25,7 @@ class PyMCMuseProblem(MuseProblem):
         super().__init__()
         
         # dev note: "RVs" are the Aesara tensor variables PyMC uses for
-        # simulation. "vals" are the (possibly transformed) Aesara
+        # simulation. "vals" are the (transformed, if needed) Aesara
         # tensor variables PyMC uses for posterior evaluation, and
         # which are tagged with the transform function
 
@@ -38,9 +38,9 @@ class PyMCMuseProblem(MuseProblem):
         # can swap in other values later
         rvs_to_values, logpt = unconditioned_logpt(model)
 
-        # automatically figure out which variables correspond to
-        # (x,z,θ). the x have observed values, the θ are paramaters
-        # with no parent, and remaining free variables are z
+        # if not provided, automatically figure out which variables
+        # correspond to (x,z,θ). the x have observed values, the θ are
+        # parameters with no parent, and remaining free variables are z
         model_graph = pm.model_graph.ModelGraph(model)
         if params:
             self.θ_RVs = θ_RVs = [var for var in model.basic_RVs if var.name in params]

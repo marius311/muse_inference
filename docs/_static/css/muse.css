@@ -19,3 +19,7 @@ code, pre {
 div.nboutput.container div.output_area.stderr {
   background-color: inherit !important;
 }
+
+.prompt {
+  display: none;
+}

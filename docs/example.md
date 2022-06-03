@@ -24,14 +24,6 @@ This package allows defining your inference problem with:
 
 We'll start withPyMC, since it is the easiest. First, load up the relevant packages:
 
-```python
-%pylab inline
-from scipy import stats
-import pymc as pm
-from ttictoc import tic, toc
-from muse_inference.pymc import PyMCMuseProblem
-```
-
 ```python nbsphinx="hidden" tags=[]
 %config InlineBackend.print_figure_kwargs = {'bbox_inches': 'tight', 'dpi': 110}
 %load_ext autoreload
@@ -39,7 +31,14 @@ from muse_inference.pymc import PyMCMuseProblem
 import logging, warnings
 logging.getLogger("pymc").setLevel(logging.FATAL)
 warnings.filterwarnings("ignore")
+```
 
+```python
+%pylab inline
+from scipy import stats
+import pymc as pm
+from ttictoc import tic, toc
+from muse_inference.pymc import PyMCMuseProblem
 ```
 
 As an example, consider the following hierarchical problem, which has the classic [Neal's Funnel](https://mc-stan.org/docs/2_18/stan-users-guide/reparameterization-section.html) problem embedded in it. Neal's funnel is a standard example of a non-Gaussian latent space which HMC struggles to sample efficiently without extra tricks. Specifically, we consider the model defined by:
@@ -52,7 +51,7 @@ x_i &\sim {\rm Normal}(z_i, 1)
 \end{aligned}
 $$
 
-for $i=1...2048$. This problem can be described by the following PyMC model:
+for $i=1...10000$. This problem can be described by the following PyMC model:
 
 ```python
 def gen_funnel(x=None, θ=None, rng=None):
@@ -114,31 +113,33 @@ with model:
     t_mfvi = toc()
 ```
 
-Now lets plot the differentestimates. In this case, MUSE gives a nearly perfect answer at a fraction of the computational cost. MFVI struggles in both speed and accuracy by comparison.
+Now lets plot the different estimates. In this case, MUSE gives a nearly perfect answer using only a fraction posterior gradient calls. MFVI struggles in both speed and accuracy by comparison.
 
 ```python
 figure(figsize=(6,5))
 axvline(0, c="k", ls="--", alpha=0.5)
+ncalls_hmc = sum(chain.sample_stats["n_steps"]) + sum(chain.warmup_sample_stats["n_steps"])
 hist(
     chain["posterior"]["θ"].to_series(), 
     bins=30, density=True, alpha=0.5, color="C0",
-    label="NUTS (%.2fs)"%t_hmc
+    label="HMC (%.2fs, %i ∇logP calls)"%(t_hmc, ncalls_hmc)
 )
 θs = linspace(*xlim())
+ncalls_muse = sum([soln.nfev for h in result.history for soln in [h["MAP_history_dat"]] + h["MAP_history_sims"]])
 plot(
     θs, stats.norm(result.θ, sqrt(result.Σ[0,0])).pdf(θs), 
-    color="C1", label="MUSE (%.2fs)"%t_muse
+    color="C1", label="MUSE (%.2fs,  %i ∇logP calls)"%(t_muse, ncalls_muse)
 )
 hist(
     mfvi.sample(1000)["posterior"]["θ"].to_series(), 
     bins=30, density=True, alpha=0.5, color="C2",
     label="MFVI (%.2fs)"%t_mfvi
 )
-legend()
+ylim(0, ylim()[1]*1.2)
+legend(frameon=True)
 xlabel(r"$\theta$")
 ylabel(r"$\mathcal{P}(\theta\,|\,x)$")
 title("10000-dimensional noisy funnel");
 ```
 
-The timing difference is indicative of the speedups over HMC that are possible. These get even more dramatic as we increase dimensionality, and several orders of magnitude are not atypical for high-dimensional problems.
-
+Note that due to PyMC overhead, the timing difference between HMC and MUSE is less drastic than the number of gradient calls. For more realistic and expensive posterior functions, this overhead becomes negligible. If you are working with small problems and need less overhead, the Jax or Numpy interfaces will be faster (or even consider using the Julia package [MuseInference.jl](https://cosmicmar.com/MuseInference.jl) which is the fastest of all options).
