@@ -83,7 +83,7 @@ class MuseProblem():
         x, 
         z_guess, 
         θ, 
-        method = 'L-BFGS-B', 
+        method = None,
         options = dict(),
         z_tol = None,
         θ_tol = None,
@@ -94,6 +94,8 @@ class MuseProblem():
 
         if z_tol is not None:
             options = dict(gtol=z_tol, **options)
+        if method is None:
+            method = 'L-BFGS-B'
 
         np = self.np
                 
@@ -183,7 +185,7 @@ class MuseProblem():
         θ_rtol = 1e-2,
         z_tol = None,
         s_MAP_tol_initial = None,
-        method = "L-BFGS-B",
+        method = None,
         nsims = 100,
         α = 0.7,
         progress = False,
@@ -309,7 +311,7 @@ class MuseProblem():
         result = None,
         θ0 = None,
         s_MAP_tol = None,
-        method = "L-BFGS-B",
+        method = None,
         rng = None,
         nsims = 100, 
         pmap = map,
@@ -362,7 +364,7 @@ class MuseProblem():
         result = None,
         θ0 = None,
         step = None,
-        method = "L-BFGS-B",
+        method = None,
         s_MAP_tol = None,
         rng = None,
         nsims = 10, 

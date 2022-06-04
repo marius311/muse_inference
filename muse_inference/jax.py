@@ -21,21 +21,16 @@ class JaxMuseProblem(MuseProblem):
     def logPrior(self, θ):
         raise NotImplementedError()
 
-    def gradθ_logLike(self, x, z, θ):
-        return jax.grad(lambda θ: self.logLike(x, z, θ))(θ)
-
-    @partial(jax.jit, static_argnums=(0,))
     def logLike_and_gradzθ_logLike(self, x, z, θ, transformed_θ=None):
-        logLike, (gradz_logLike, gradθ_logLike) = jax.value_and_grad(lambda z_θ: self.logLike(x, *z_θ))((z, θ))
+        logLike, (gradz_logLike, gradθ_logLike) = jax.value_and_grad(self.logLike, argnums=(1, 2))(x, z, θ)
         return (logLike, gradz_logLike, gradθ_logLike)
 
-    @partial(jax.jit, static_argnums=(0,))
     def gradθ_logLike_at_zMAP(
         self, 
         x, 
         z_guess, 
         θ, 
-        method = None, #'L-BFGS-B', 
+        method = None,
         options = dict(),
         z_tol = None,
         θ_tol = None,
@@ -43,13 +38,15 @@ class JaxMuseProblem(MuseProblem):
 
         if z_tol is not None:
             options = dict(gtol=z_tol, **options)
+        if method is None:
+            method = "l-bfgs-experimental-do-not-rely-on-this"
 
         ravel, unravel = self._ravel_unravel(z_guess)
         
         soln = minimize(
             lambda z_vec: -self.logLike(x, unravel(z_vec), θ), ravel(z_guess), 
-            method="l-bfgs-experimental-do-not-rely-on-this", 
-            options=options
+            method = method,
+            options = options
         )
 
         zMAP = unravel(soln.x)
@@ -72,12 +69,25 @@ class JaxMuseProblem(MuseProblem):
         return jax.random.split(key, N)
 
 
-class JittedJaxMuseProblem(JaxMuseProblem):
+class JittableJaxMuseProblem(JaxMuseProblem):
 
-    @partial(jax.jit, static_argnums=(0,))
+    @partial(jax.jit, static_argnames=("self",))
     def logLike_and_gradzθ_logLike(self, x, z, θ, transformed_θ=None):
         return super().logLike_and_gradzθ_logLike(x, z, θ, transformed_θ=transformed_θ)
 
-    @partial(jax.jit, static_argnums=(0,))
+    @partial(jax.jit, static_argnames=("self",))
     def gradθ_and_hessθ_logPrior(self, θ, transformed_θ=None):
         return super().gradθ_and_hessθ_logPrior(θ, transformed_θ=transformed_θ)
+
+    @partial(jax.jit, static_argnames=("self","method"))
+    def gradθ_logLike_at_zMAP(
+        self, 
+        x, 
+        z_guess, 
+        θ, 
+        method = None,
+        options = dict(),
+        z_tol = None,
+        θ_tol = None,
+    ):
+        return super().gradθ_logLike_at_zMAP(x, z_guess, θ, method, options, z_tol, θ_tol)

@@ -3,6 +3,7 @@ import sys
 
 sys.path.append("..")
 
+from functools import partial
 from numbers import Number
 
 import jax
@@ -10,7 +11,7 @@ import jax.numpy as jnp
 import numpy as np
 import pymc as pm
 from muse_inference import MuseProblem, MuseResult, ScoreAndMAP, XZSample
-from muse_inference.jax import JaxMuseProblem, JittedJaxMuseProblem
+from muse_inference.jax import JaxMuseProblem, JittableJaxMuseProblem
 from muse_inference.pymc import PyMCMuseProblem
 
 
@@ -33,7 +34,7 @@ def test_scalar_numpy():
             gradθ_logLike = np.sum(z**2)/(2*np.exp(θ)) - self.N/2
             return (logLike, gradz_logLike, gradθ_logLike)
         
-        def grad_hess_θ_logPrior(self, θ):
+        def gradθ_and_hessθ_logPrior(self, θ, transformed_θ=None):
             return (-θ/(3**2), -1/3**2)
 
     θ_true = 1.
@@ -107,21 +108,24 @@ def test_ravel_numpy():
 
 def test_scalar_jax():
 
-    class JaxFunnelMuseProblem(JaxMuseProblem):
+    class JaxFunnelMuseProblem(JittableJaxMuseProblem):
 
         def __init__(self, N):
             super().__init__()
             self.N = N
 
+        @partial(jax.jit, static_argnums=0)
         def sample_x_z(self, key, θ):
             keys = jax.random.split(key, 2)
-            z = jax.random.normal(keys[0], (self.N,)) * np.exp(θ/2)
+            z = jax.random.normal(keys[0], (self.N,)) * jnp.exp(θ/2)
             x = z + jax.random.normal(keys[1], (self.N,))
             return XZSample(x, z)
 
+        @partial(jax.jit, static_argnums=0)
         def logLike(self, x, z, θ):
             return -(jnp.sum((x - z)**2) + jnp.sum(z**2) / jnp.exp(θ) + 512*θ) / 2
 
+        @partial(jax.jit, static_argnums=0)
         def logPrior(self, θ):
             return -θ**2 / (2*3**2)
 
@@ -144,27 +148,30 @@ def test_scalar_jax():
 
 def test_ravel_jax():
 
-    class JaxFunnelMuseProblem(JittedJaxMuseProblem):
+    class JaxFunnelMuseProblem(JittableJaxMuseProblem):
 
         def __init__(self, N):
             super().__init__()
             self.N = N
 
+        @partial(jax.jit, static_argnums=0)
         def sample_x_z(self, key, θ):
             (θ1, θ2) = (θ["θ1"], θ["θ2"])
             keys = jax.random.split(key, 4)
-            z1 = jax.random.normal(keys[0], (self.N,)) * np.exp(θ1/2)
-            z2 = jax.random.normal(keys[1], (self.N,)) * np.exp(θ2/2)        
+            z1 = jax.random.normal(keys[0], (self.N,)) * jnp.exp(θ1/2)
+            z2 = jax.random.normal(keys[1], (self.N,)) * jnp.exp(θ2/2)        
             x1 = z1 + jax.random.normal(keys[2], (self.N,))
             x2 = z2 + jax.random.normal(keys[3], (self.N,))        
             return XZSample(x={"x1":x1, "x2":x2}, z={"z1":z1, "z2":z2})
 
+        @partial(jax.jit, static_argnums=0)
         def logLike(self, x, z, θ):
             return (
                 -(jnp.sum((x["x1"] - z["z1"])**2) + jnp.sum(z["z1"]**2) / jnp.exp(θ["θ1"]) + 512*θ["θ1"]) / 2
                 -(jnp.sum((x["x2"] - z["z2"])**2) + jnp.sum(z["z2"]**2) / jnp.exp(θ["θ2"]) + 512*θ["θ2"]) / 2
             )
         
+        @partial(jax.jit, static_argnums=0)
         def logPrior(self, θ):
             return - θ["θ1"]**2 / (2*3**2) - θ["θ2"]**2 / (2*3**2)
 
