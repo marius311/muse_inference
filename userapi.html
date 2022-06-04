@@ -415,8 +415,8 @@ Populating the interactive namespace from numpy and matplotlib
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-MUSE: 100%|██████████| 5050/5050 [00:06&lt;00:00, 753.45it/s]
-get_H: 100%|██████████| 70/70 [00:01&lt;00:00, 45.48it/s]
+MUSE: 100%|██████████| 5050/5050 [00:14&lt;00:00, 342.21it/s]
+get_H: 100%|██████████| 70/70 [00:02&lt;00:00, 30.49it/s]
 </pre></div></div>
 </div>
 <p>When there are multiple parameters, the starting guess should be specified as as a dictionary, as above.</p>
@@ -435,10 +435,10 @@ get_H: 100%|██████████| 70/70 [00:01&lt;00:00, 45.48it/s]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-(array([0.32919082, 0.5255847 , 0.80455833]),
- array([[ 0.02467312,  0.01035246, -0.01929573],
-        [ 0.01035246,  0.02181354, -0.01880686],
-        [-0.01929573, -0.01880686,  0.03661209]]))
+(array([0.33280948, 0.53253313, 0.79573946]),
+ array([[ 0.01414019, -0.0039033 , -0.00140125],
+        [-0.0039033 ,  0.0323467 ,  0.00066521],
+        [-0.00140125,  0.00066521,  0.00243382]]))
 </pre></div></div>
 </div>
 </section>
@@ -492,7 +492,7 @@ get_H: 100%|██████████| 70/70 [00:01&lt;00:00, 45.48it/s]
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">prob</span> <span class="o">=</span> <span class="n">JaxFunnelMuseProblem</span><span class="p">(</span><span class="mi">10000</span><span class="p">)</span>
 <span class="n">key</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">PRNGKey</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-<span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">sample_x_z</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.</span><span class="p">]))</span>
+<span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">sample_x_z</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 <span class="n">prob</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">x</span>
 </pre></div>
 </div>
@@ -519,11 +519,11 @@ WARNING:absl:No GPU/TPU found, falling back to CPU. (Set TF_CPP_MIN_LOG_LEVEL=0 
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-MUSE: 100%|██████████| 5050/5050 [00:01&lt;00:00, 3419.83it/s]
-get_H: 100%|██████████| 30/30 [00:00&lt;00:00, 446.92it/s]
+MUSE: 100%|██████████| 5050/5050 [00:00&lt;00:00, 5342.69it/s]
+get_H: 100%|██████████| 30/30 [00:00&lt;00:00, 251.22it/s]
 </pre></div></div>
 </div>
-<p>Note that the solution here is obtained around 10X faster that the PyMC version of this in the <a class="reference external" href="example.html">Example</a> page. The Jax interface has much lower overhead, which will be noticeable for very fast posteriors like the one above.</p>
+<p>Note that the solution here is obtained around 10X faster that the PyMC version of this in the <a class="reference external" href="example.html">Example</a> page (the 10X is not fully achieved on the cloud servers which build these docs, but you can see this if you run these examples locally). The Jax interface has much lower overhead, which will be noticeable for very fast posteriors like the one above.</p>
 <p>One powerful aspect of using Jax is that the parameters, <code class="docutils literal notranslate"><span class="pre">θ</span></code>, and latent space, <code class="docutils literal notranslate"><span class="pre">z</span></code>, can be any <a class="reference external" href="https://jax.readthedocs.io/en/latest/pytrees.html">pytree</a>, ie tuples, dictionaries, nested combinations of them, etc… (there is no requirement on the data format of the <code class="docutils literal notranslate"><span class="pre">x</span></code> variable). To demonstrate, consider a problem which is just two copies of the noisy funnel problem:</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
@@ -593,8 +593,8 @@ get_H: 100%|██████████| 30/30 [00:00&lt;00:00, 446.92it/s]
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-MUSE: 100%|██████████| 5050/5050 [00:06&lt;00:00, 830.33it/s]
-get_H: 100%|██████████| 50/50 [00:00&lt;00:00, 219.49it/s]
+MUSE: 100%|██████████| 5050/5050 [00:08&lt;00:00, 580.71it/s]
+get_H: 100%|██████████| 50/50 [00:00&lt;00:00, 138.65it/s]
 </pre></div></div>
 </div>
 <p>The result is returned as a dictionary:</p>
