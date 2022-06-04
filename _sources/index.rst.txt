@@ -31,6 +31,7 @@ The only requirements to run MUSE on a particular problem are that forward simul
    :caption: Contents:
 
    example
+   userapi
 
 
 Indices and tables

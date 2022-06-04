@@ -22,7 +22,15 @@ This package allows defining your inference problem with:
 * by coding up the posterior by-hand and using [Jax](https://jax.readthedocs.io/) to automatically compute the necessary posterior gradients
 * by specifying the posterior and its gradients completely by-hand
 
-We'll start withPyMC, since it is the easiest. First, load up the relevant packages:
+We'll start with PyMC, since it is the easiest. First, load up the relevant packages:
+
+```python
+%pylab inline
+from scipy import stats
+import pymc as pm
+from ttictoc import tic, toc
+from muse_inference.pymc import PyMCMuseProblem
+```
 
 ```python nbsphinx="hidden" tags=[]
 %config InlineBackend.print_figure_kwargs = {'bbox_inches': 'tight', 'dpi': 110}
@@ -31,14 +39,6 @@ We'll start withPyMC, since it is the easiest. First, load up the relevant packa
 import logging, warnings
 logging.getLogger("pymc").setLevel(logging.FATAL)
 warnings.filterwarnings("ignore")
-```
-
-```python
-%pylab inline
-from scipy import stats
-import pymc as pm
-from ttictoc import tic, toc
-from muse_inference.pymc import PyMCMuseProblem
 ```
 
 As an example, consider the following hierarchical problem, which has the classic [Neal's Funnel](https://mc-stan.org/docs/2_18/stan-users-guide/reparameterization-section.html) problem embedded in it. Neal's funnel is a standard example of a non-Gaussian latent space which HMC struggles to sample efficiently without extra tricks. Specifically, we consider the model defined by:
@@ -84,7 +84,7 @@ We can run HMC on the problem to compute the "true" answer to compare against:
 ```python
 with model:
     tic()
-    chain = pm.sample(500, tune=500, cores=1, chains=1, discard_tuned_samples=False, random_seed=0)
+    chain = pm.sample(500, tune=500, chains=1, discard_tuned_samples=False, random_seed=0)
     t_hmc = toc()
 ```
 
@@ -99,8 +99,9 @@ Running the MUSE estimate,
 
 ```python
 prob = PyMCMuseProblem(model)
+rng = np.random.SeedSequence(1)
 tic()
-result = prob.solve(θ_start=0, nsims=nsims, rng=np.random.SeedSequence(1), progress=True, save_MAP_history=True)
+result = prob.solve(θ_start=0, nsims=nsims, rng=rng, progress=True, save_MAP_history=True)
 t_muse = toc()
 ```
 
@@ -125,7 +126,9 @@ hist(
     label="HMC (%.2fs, %i ∇logP calls)"%(t_hmc, ncalls_hmc)
 )
 θs = linspace(*xlim())
-ncalls_muse = sum([soln.nfev for h in result.history for soln in [h["MAP_history_dat"]] + h["MAP_history_sims"]])
+ncalls_muse = sum(
+    [s.nfev for h in result.history for s in [h["MAP_history_dat"]]+h["MAP_history_sims"]]
+)
 plot(
     θs, stats.norm(result.θ, sqrt(result.Σ[0,0])).pdf(θs), 
     color="C1", label="MUSE (%.2fs,  %i ∇logP calls)"%(t_muse, ncalls_muse)
