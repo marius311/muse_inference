@@ -38,8 +38,8 @@ Indices and tables
 ==================
 
 * :ref:`genindex`
-.. * :ref:`modindex`
 * :ref:`search`
+.. * :ref:`modindex`
 
 .. |br| raw:: html
 

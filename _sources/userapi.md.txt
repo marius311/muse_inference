@@ -127,6 +127,10 @@ prob.x = x
 
 And finally, run MUSE:
 
+```python nbsphinx="hidden" tags=[]
+prob.solve(θ_start=0., rng=jax.random.PRNGKey(1)) # warmup
+```
+
 ```python
 result = prob.solve(θ_start=0., rng=jax.random.PRNGKey(1), progress=True)
 ```
@@ -180,6 +184,10 @@ prob.x = x
 ```
 
 and run MUSE:
+
+```python nbsphinx="hidden" tags=[]
+prob.solve(θ_start=θ_start, rng=jax.random.PRNGKey(0)) # warmup
+```
 
 ```python
 result = prob.solve(θ_start=θ_start, rng=jax.random.PRNGKey(0), progress=True)

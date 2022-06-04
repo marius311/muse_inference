@@ -377,7 +377,7 @@ Populating the interactive namespace from numpy and matplotlib
 z_i &amp;\sim {\rm Normal}(0,\exp(\theta/2)) \\
 x_i &amp;\sim {\rm Normal}(z_i, 1)
 \end{aligned}\end{split}\]</div>
-<p>for <span class="math notranslate nohighlight">\(i=1...10000\)</span>. This problem can be described by the following PyMC model:</p>
+<p>for <span class="math notranslate nohighlight">\(i=1..10000\)</span>. This problem can be described by the following PyMC model:</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
@@ -409,7 +409,8 @@ x_i &amp;\sim {\rm Normal}(z_i, 1)
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">model</span><span class="p">:</span>
     <span class="n">tic</span><span class="p">()</span>
-    <span class="n">chain</span> <span class="o">=</span> <span class="n">pm</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="mi">500</span><span class="p">,</span> <span class="n">tune</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">chains</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">discard_tuned_samples</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">random_seed</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">chain</span> <span class="o">=</span> <span class="n">pm</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="mi">500</span><span class="p">,</span> <span class="n">tune</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">chains</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">discard_tuned_samples</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="n">t_hmc</span> <span class="o">=</span> <span class="n">toc</span><span class="p">()</span>
 </pre></div>
 </div>
@@ -437,7 +438,7 @@ x_i &amp;\sim {\rm Normal}(z_i, 1)
 <div class="output_area rendered_html docutils container">
 <div>
   <progress value='1000' class='' max='1000' style='width:300px; height:20px; vertical-align: middle;'></progress>
-  100.00% [1000/1000 00:18<00:00 Sampling chain 0, 0 divergences]
+  100.00% [1000/1000 00:16<00:00 Sampling chain 0, 0 divergences]
 </div></div>
 </div>
 <p>We next compute the MUSE estimate for the same problem. To reach the same Monte Carlo error as HMC, the number of MUSE simulations should be the same as the effective sample size of the chain we just ran. This is:</p>
@@ -456,7 +457,7 @@ x_i &amp;\sim {\rm Normal}(z_i, 1)
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-37
+59
 </pre></div></div>
 </div>
 <p>Running the MUSE estimate,</p>
@@ -477,8 +478,8 @@ x_i &amp;\sim {\rm Normal}(z_i, 1)
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-MUSE: 100%|██████████| 1900/1900 [00:06&lt;00:00, 304.74it/s]
-get_H: 100%|██████████| 9/9 [00:00&lt;00:00, 68.25it/s]
+MUSE: 100%|██████████| 3000/3000 [00:07&lt;00:00, 398.81it/s]
+get_H: 100%|██████████| 15/15 [00:00&lt;00:00, 61.01it/s]
 </pre></div></div>
 </div>
 <p>Lets also try mean-field variational inference (MFVI) to compare to another approximate method.</p>
@@ -516,7 +517,7 @@ get_H: 100%|██████████| 9/9 [00:00&lt;00:00, 68.25it/s]
 <div class="output_area rendered_html docutils container">
 <div>
   <progress value='10000' class='' max='10000' style='width:300px; height:20px; vertical-align: middle;'></progress>
-  100.00% [10000/10000 01:18<00:00 Average Loss = 17,851]
+  100.00% [10000/10000 00:57<00:00 Average Loss = 17,851]
 </div></div>
 </div>
 <p>Now lets plot the different estimates. In this case, MUSE gives a nearly perfect answer using only a fraction posterior gradient calls. MFVI struggles in both speed and accuracy by comparison.</p>

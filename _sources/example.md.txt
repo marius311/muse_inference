@@ -51,7 +51,7 @@ x_i &\sim {\rm Normal}(z_i, 1)
 \end{aligned}
 $$
 
-for $i=1...10000$. This problem can be described by the following PyMC model:
+for $i=1..10000$. This problem can be described by the following PyMC model:
 
 ```python
 def gen_funnel(x=None, θ=None, rng=None):
@@ -84,7 +84,8 @@ We can run HMC on the problem to compute the "true" answer to compare against:
 ```python
 with model:
     tic()
-    chain = pm.sample(500, tune=500, chains=1, discard_tuned_samples=False, random_seed=0)
+    np.random.seed(1)
+    chain = pm.sample(500, tune=500, chains=1, discard_tuned_samples=False)
     t_hmc = toc()
 ```
 
