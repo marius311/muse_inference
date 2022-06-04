@@ -121,7 +121,7 @@ Now generate some simulated data, which we set into `prob.x`. Note also the use 
 ```python
 prob = JaxFunnelMuseProblem(10000)
 key = jax.random.PRNGKey(0)
-(x, z) = prob.sample_x_z(key, jnp.array([1.]))
+(x, z) = prob.sample_x_z(key, 0)
 prob.x = x
 ```
 
@@ -135,7 +135,7 @@ prob.solve(θ_start=0., rng=jax.random.PRNGKey(1)) # warmup
 result = prob.solve(θ_start=0., rng=jax.random.PRNGKey(1), progress=True)
 ```
 
-Note that the solution here is obtained around 10X faster that the PyMC version of this in the [Example](example.html) page. The Jax interface has much lower overhead, which will be noticeable for very fast posteriors like the one above. 
+Note that the solution here is obtained around 10X faster that the PyMC version of this in the [Example](example.html) page (the 10X is not fully achieved on the cloud servers which build these docs, but you can see this if you run these examples locally). The Jax interface has much lower overhead, which will be noticeable for very fast posteriors like the one above. 
 
 
 One powerful aspect of using Jax is that the parameters, `θ`, and latent space, `z`, can be any [pytree](https://jax.readthedocs.io/en/latest/pytrees.html), ie tuples, dictionaries, nested combinations of them, etc... (there is no requirement on the data format of the `x` variable). To demonstrate, consider a problem which is just two copies of the noisy funnel problem:
