@@ -415,8 +415,8 @@ Populating the interactive namespace from numpy and matplotlib
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-MUSE: 100%|██████████| 5050/5050 [00:07&lt;00:00, 718.47it/s]
-get_H: 100%|██████████| 70/70 [00:01&lt;00:00, 59.33it/s]
+MUSE: 100%|██████████| 5050/5050 [00:06&lt;00:00, 753.45it/s]
+get_H: 100%|██████████| 70/70 [00:01&lt;00:00, 45.48it/s]
 </pre></div></div>
 </div>
 <p>When there are multiple parameters, the starting guess should be specified as as a dictionary, as above.</p>
@@ -435,10 +435,10 @@ get_H: 100%|██████████| 70/70 [00:01&lt;00:00, 59.33it/s]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-(array([0.32408474, 0.54104833, 0.80107609]),
- array([[ 0.01987661,  0.00529307, -0.01835915],
-        [ 0.00529307,  0.02088482, -0.01491222],
-        [-0.01835915, -0.01491222,  0.02942584]]))
+(array([0.32919082, 0.5255847 , 0.80455833]),
+ array([[ 0.02467312,  0.01035246, -0.01929573],
+        [ 0.01035246,  0.02181354, -0.01880686],
+        [-0.01929573, -0.01880686,  0.03661209]]))
 </pre></div></div>
 </div>
 </section>
@@ -519,8 +519,8 @@ WARNING:absl:No GPU/TPU found, falling back to CPU. (Set TF_CPP_MIN_LOG_LEVEL=0 
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-MUSE: 100%|██████████| 5050/5050 [00:01&lt;00:00, 4148.05it/s]
-get_H: 100%|██████████| 30/30 [00:00&lt;00:00, 556.39it/s]
+MUSE: 100%|██████████| 5050/5050 [00:01&lt;00:00, 3419.83it/s]
+get_H: 100%|██████████| 30/30 [00:00&lt;00:00, 446.92it/s]
 </pre></div></div>
 </div>
 <p>Note that the solution here is obtained around 10X faster that the PyMC version of this in the <a class="reference external" href="example.html">Example</a> page. The Jax interface has much lower overhead, which will be noticeable for very fast posteriors like the one above.</p>
@@ -593,8 +593,8 @@ get_H: 100%|██████████| 30/30 [00:00&lt;00:00, 556.39it/s]
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-MUSE: 100%|██████████| 5050/5050 [00:04&lt;00:00, 1024.96it/s]
-get_H: 100%|██████████| 50/50 [00:00&lt;00:00, 299.97it/s]
+MUSE: 100%|██████████| 5050/5050 [00:06&lt;00:00, 830.33it/s]
+get_H: 100%|██████████| 50/50 [00:00&lt;00:00, 219.49it/s]
 </pre></div></div>
 </div>
 <p>The result is returned as a dictionary:</p>
