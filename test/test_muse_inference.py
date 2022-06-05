@@ -10,12 +10,15 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import pymc as pm
+import pytest
+from multiprocess import Pool
 from muse_inference import MuseProblem, MuseResult
 from muse_inference.jax import JaxMuseProblem, JittableJaxMuseProblem
 from muse_inference.pymc import PyMCMuseProblem
 
 
-def test_scalar_numpy():
+@pytest.mark.parametrize("pmap", [map, Pool(4).map])
+def test_scalar_numpy(pmap):
 
     class NumpyFunnelMuseProblem(MuseProblem):
         
@@ -44,8 +47,8 @@ def test_scalar_numpy():
     rng = np.random.RandomState(0)
     prob.x = prob.sample_x_z(rng, θ_true)[0]
 
-    result = prob.solve(θ_start=θ_start, rng=np.random.SeedSequence(1))
-    prob.get_J(result, nsims=len(result.s_MAP_sims)+10, rng=np.random.SeedSequence(2))
+    result = prob.solve(θ_start=θ_start, rng=np.random.SeedSequence(1), pmap=pmap)
+    prob.get_J(result, nsims=len(result.s_MAP_sims)+10, rng=np.random.SeedSequence(2), pmap=pmap)
 
     assert isinstance(result.θ, Number)
     assert result.Σ.shape == (1,1)
@@ -53,8 +56,8 @@ def test_scalar_numpy():
 
 
 
-
-def test_ravel_numpy():
+@pytest.mark.parametrize("pmap", [map, Pool(4).map])
+def test_ravel_numpy(pmap):
 
     class NumpyFunnelMuseProblem(MuseProblem):
     
@@ -95,8 +98,8 @@ def test_ravel_numpy():
     rng = np.random.RandomState(0)
     prob.x = prob.sample_x_z(rng, θ_true)[0]
 
-    result = prob.solve(θ_start=θ_start, rng=np.random.SeedSequence(1))
-    prob.get_J(result, nsims=len(result.s_MAP_sims)+10, rng=np.random.SeedSequence(2))
+    result = prob.solve(θ_start=θ_start, rng=np.random.SeedSequence(1), pmap=pmap)
+    prob.get_J(result, nsims=len(result.s_MAP_sims)+10, rng=np.random.SeedSequence(2), pmap=pmap)
 
 
     assert isinstance(result.θ, tuple)
