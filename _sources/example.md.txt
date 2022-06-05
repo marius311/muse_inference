@@ -131,7 +131,7 @@ ncalls_muse = sum(
     [s.nfev for h in result.history for s in [h["MAP_history_dat"]]+h["MAP_history_sims"]]
 )
 plot(
-    θs, stats.norm(result.θ, sqrt(result.Σ[0,0])).pdf(θs), 
+    θs, stats.norm(result.θ["θ"], sqrt(result.Σ[0,0])).pdf(θs), 
     color="C1", label="MUSE (%.2fs,  %i ∇logP calls)"%(t_muse, ncalls_muse)
 )
 hist(
@@ -146,4 +146,4 @@ ylabel(r"$\mathcal{P}(\theta\,|\,x)$")
 title("10000-dimensional noisy funnel");
 ```
 
-Note that due to PyMC overhead, the timing difference between HMC and MUSE is less drastic than the number of gradient calls. For more realistic and expensive posterior functions, this overhead becomes negligible. If you are working with small problems and need less overhead, the Jax or Numpy interfaces will be faster (or even consider using the Julia package [MuseInference.jl](https://cosmicmar.com/MuseInference.jl) which is the fastest of all options).
+Note that due to PyMC overhead, the timing difference between HMC and MUSE is less drastic than the number of gradient calls would imply. For more realistic and expensive posterior functions, this overhead becomes negligible and you can see speedups of 10-100X or more (depending on problem and latent space dimensoinality). If you are working with small problems and need less overhead, the Jax or Numpy interfaces will be faster (or even consider using the Julia package [MuseInference.jl](https://cosmicmar.com/MuseInference.jl) which is the fastest of all options).

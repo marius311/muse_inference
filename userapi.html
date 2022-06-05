@@ -378,11 +378,11 @@ Populating the interactive namespace from numpy and matplotlib
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">gen_funnel</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">θ</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">μ</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">gen_funnel</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">σ</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">μ</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="k">with</span> <span class="n">pm</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">rng_seeder</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span> <span class="k">as</span> <span class="n">model</span><span class="p">:</span>
         <span class="n">μ</span> <span class="o">=</span> <span class="n">pm</span><span class="o">.</span><span class="n">Beta</span><span class="p">(</span><span class="s2">&quot;μ&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span> <span class="k">if</span> <span class="n">μ</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">μ</span>
-        <span class="n">θ</span> <span class="o">=</span> <span class="n">pm</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="s2">&quot;θ&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="k">if</span> <span class="n">θ</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">θ</span>
-        <span class="n">z</span> <span class="o">=</span> <span class="n">pm</span><span class="o">.</span><span class="n">LogNormal</span><span class="p">(</span><span class="s2">&quot;z&quot;</span><span class="p">,</span> <span class="n">μ</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">θ</span><span class="o">/</span><span class="mi">2</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="n">σ</span> <span class="o">=</span> <span class="n">pm</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="s2">&quot;σ&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="k">if</span> <span class="n">σ</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">σ</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="n">pm</span><span class="o">.</span><span class="n">LogNormal</span><span class="p">(</span><span class="s2">&quot;z&quot;</span><span class="p">,</span> <span class="n">μ</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">σ</span><span class="o">/</span><span class="mi">2</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">pm</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">observed</span><span class="o">=</span><span class="n">x</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">model</span>
 </pre></div>
@@ -393,8 +393,8 @@ Populating the interactive namespace from numpy and matplotlib
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">params_true</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">μ</span><span class="o">=</span><span class="p">[</span><span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.7</span><span class="p">],</span> <span class="n">θ</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-<span class="n">x_obs</span> <span class="o">=</span> <span class="n">pm</span><span class="o">.</span><span class="n">sample_prior_predictive</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">gen_funnel</span><span class="p">(</span><span class="n">rng</span><span class="o">=</span><span class="n">RandomState</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="o">**</span><span class="n">params_true</span><span class="p">))</span><span class="o">.</span><span class="n">prior</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">θ_true</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">μ</span><span class="o">=</span><span class="p">[</span><span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.7</span><span class="p">],</span> <span class="n">σ</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">x_obs</span> <span class="o">=</span> <span class="n">pm</span><span class="o">.</span><span class="n">sample_prior_predictive</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">gen_funnel</span><span class="p">(</span><span class="n">rng</span><span class="o">=</span><span class="n">RandomState</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="o">**</span><span class="n">θ_true</span><span class="p">))</span><span class="o">.</span><span class="n">prior</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span>
 <span class="n">model</span> <span class="o">=</span> <span class="n">gen_funnel</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x_obs</span><span class="p">)</span>
 <span class="n">prob</span> <span class="o">=</span> <span class="n">PyMCMuseProblem</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
 </pre></div>
@@ -405,8 +405,8 @@ Populating the interactive namespace from numpy and matplotlib
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">params_start</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">μ</span><span class="o">=</span><span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span> <span class="n">θ</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-<span class="n">result</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">params_start</span><span class="p">,</span> <span class="n">progress</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">θ_start</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">μ</span><span class="o">=</span><span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span> <span class="n">σ</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">θ_start</span><span class="o">=</span><span class="n">θ_start</span><span class="p">,</span> <span class="n">progress</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -415,17 +415,17 @@ Populating the interactive namespace from numpy and matplotlib
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-MUSE: 100%|██████████| 5050/5050 [00:14&lt;00:00, 342.21it/s]
-get_H: 100%|██████████| 70/70 [00:02&lt;00:00, 30.49it/s]
+MUSE: 100%|██████████| 5050/5050 [00:10&lt;00:00, 482.12it/s]
+get_H: 100%|██████████| 70/70 [00:02&lt;00:00, 34.14it/s]
 </pre></div></div>
 </div>
 <p>When there are multiple parameters, the starting guess should be specified as as a dictionary, as above.</p>
-<p>The solution is returned as a 1-dimensional vector of all parameters concatenated in the order they appear in the model:</p>
+<p>The parameter estimate is returned as a dictionary,</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">result</span><span class="o">.</span><span class="n">θ</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">Σ</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">result</span><span class="o">.</span><span class="n">θ</span>
 </pre></div>
 </div>
 </div>
@@ -435,10 +435,63 @@ get_H: 100%|██████████| 70/70 [00:02&lt;00:00, 30.49it/s]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-(array([0.33280948, 0.53253313, 0.79573946]),
- array([[ 0.01414019, -0.0039033 , -0.00140125],
-        [-0.0039033 ,  0.0323467 ,  0.00066521],
-        [-0.00140125,  0.00066521,  0.00243382]]))
+{&#39;μ&#39;: array([0.30925762, 0.52790826]), &#39;σ&#39;: array(0.82363501)}
+</pre></div></div>
+</div>
+<p>and the covariance as matrix, with parameters concatenated in the order they appear in the model (or in the order specified in <code class="docutils literal notranslate"><span class="pre">params</span></code>, if that was used):</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">result</span><span class="o">.</span><span class="n">Σ</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+array([[ 0.02413354,  0.00275797, -0.01015742],
+       [ 0.00275797,  0.0151224 , -0.00579965],
+       [-0.01015742, -0.00579965,  0.02910923]])
+</pre></div></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">result.ravel</span></code> and <code class="docutils literal notranslate"><span class="pre">result.unravel</span></code> functions can be used to convert between dictionary and vector representations of the parameters. For example, to compute the standard deviation for each parameter (the square root of the diagonal of the covariance):</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">result</span><span class="o">.</span><span class="n">unravel</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">Σ</span><span class="p">)))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+{&#39;μ&#39;: array([0.15534974, 0.12297316]), &#39;σ&#39;: array(0.17061428)}
+</pre></div></div>
+</div>
+<p>or to convert the mean parameters to a vector:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">result</span><span class="o">.</span><span class="n">ravel</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">θ</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+array([0.30925762, 0.52790826, 0.82363501])
 </pre></div></div>
 </div>
 </section>
@@ -446,20 +499,19 @@ get_H: 100%|██████████| 70/70 [00:02&lt;00:00, 30.49it/s]
 <h2>Jax<a class="headerlink" href="#Jax" title="Permalink to this headline"></a></h2>
 <p>We can also use <a class="reference external" href="https://jax.readthedocs.io/">Jax</a> to define the problem. In this case we will write out function to generate forward samples and to compute the posterior, and Jax will provide necessary gradients for free. To use Jax, load the necessary packages:</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
 <span class="kn">import</span> <span class="nn">jax</span>
 <span class="kn">import</span> <span class="nn">jax.numpy</span> <span class="k">as</span> <span class="nn">jnp</span>
 <span class="kn">from</span> <span class="nn">muse_inference.jax</span> <span class="kn">import</span> <span class="n">JittableJaxMuseProblem</span><span class="p">,</span> <span class="n">JaxMuseProblem</span>
-<span class="kn">from</span> <span class="nn">muse_inference</span> <span class="kn">import</span> <span class="n">XZSample</span>
 </pre></div>
 </div>
 </div>
 <p>Let’s implement the noisy funnel problem from the <a class="reference external" href="example.html">Example</a> page. To do so, extend either <code class="docutils literal notranslate"><span class="pre">JaxMuseProblem</span></code>, or, if your code is able to be JIT compiled by Jax, extend <code class="docutils literal notranslate"><span class="pre">JittableJaxMuseProblem</span></code> and decorate the functions with <code class="docutils literal notranslate"><span class="pre">jax.jit</span></code>:</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">JaxFunnelMuseProblem</span><span class="p">(</span><span class="n">JittableJaxMuseProblem</span><span class="p">):</span>
@@ -473,7 +525,7 @@ get_H: 100%|██████████| 70/70 [00:02&lt;00:00, 30.49it/s]
         <span class="n">keys</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
         <span class="n">z</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">keys</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N</span><span class="p">,))</span> <span class="o">*</span> <span class="n">jnp</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">θ</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">z</span> <span class="o">+</span> <span class="n">jax</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">keys</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N</span><span class="p">,))</span>
-        <span class="k">return</span> <span class="n">XZSample</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span>
 
     <span class="nd">@partial</span><span class="p">(</span><span class="n">jax</span><span class="o">.</span><span class="n">jit</span><span class="p">,</span> <span class="n">static_argnums</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">logLike</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">θ</span><span class="p">):</span>
@@ -487,7 +539,7 @@ get_H: 100%|██████████| 70/70 [00:02&lt;00:00, 30.49it/s]
 </div>
 <p>Now generate some simulated data, which we set into <code class="docutils literal notranslate"><span class="pre">prob.x</span></code>. Note also the use of <code class="docutils literal notranslate"><span class="pre">PRNGKey</span></code> (rather than <code class="docutils literal notranslate"><span class="pre">RandomState</span></code> for PyMC/Numpy) for random number generation.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">prob</span> <span class="o">=</span> <span class="n">JaxFunnelMuseProblem</span><span class="p">(</span><span class="mi">10000</span><span class="p">)</span>
@@ -507,7 +559,7 @@ WARNING:absl:No GPU/TPU found, falling back to CPU. (Set TF_CPP_MIN_LOG_LEVEL=0 
 </div>
 <p>And finally, run MUSE:</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">result</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">θ_start</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">jax</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">PRNGKey</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">progress</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -519,14 +571,14 @@ WARNING:absl:No GPU/TPU found, falling back to CPU. (Set TF_CPP_MIN_LOG_LEVEL=0 
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-MUSE: 100%|██████████| 5050/5050 [00:00&lt;00:00, 5342.69it/s]
-get_H: 100%|██████████| 30/30 [00:00&lt;00:00, 251.22it/s]
+MUSE: 100%|██████████| 5050/5050 [00:00&lt;00:00, 6645.28it/s]
+get_H: 100%|██████████| 30/30 [00:00&lt;00:00, 313.68it/s]
 </pre></div></div>
 </div>
-<p>Note that the solution here is obtained around 10X faster that the PyMC version of this in the <a class="reference external" href="example.html">Example</a> page (the 10X is not fully achieved on the cloud servers which build these docs, but you can see this if you run these examples locally). The Jax interface has much lower overhead, which will be noticeable for very fast posteriors like the one above.</p>
-<p>One powerful aspect of using Jax is that the parameters, <code class="docutils literal notranslate"><span class="pre">θ</span></code>, and latent space, <code class="docutils literal notranslate"><span class="pre">z</span></code>, can be any <a class="reference external" href="https://jax.readthedocs.io/en/latest/pytrees.html">pytree</a>, ie tuples, dictionaries, nested combinations of them, etc… (there is no requirement on the data format of the <code class="docutils literal notranslate"><span class="pre">x</span></code> variable). To demonstrate, consider a problem which is just two copies of the noisy funnel problem:</p>
+<p>Note that the solution here is obtained around 10X faster that the PyMC version of this in the <a class="reference external" href="example.html">Example</a> page (the cloud machines which build these docs don’t always achieve the 10X, but you see this if you run these examples locally). The Jax interface has much lower overhead, which will be noticeable for very fast posteriors like the one above.</p>
+<p>One convenient aspect of using Jax is that the parameters, <code class="docutils literal notranslate"><span class="pre">θ</span></code>, and latent space, <code class="docutils literal notranslate"><span class="pre">z</span></code>, can be any <a class="reference external" href="https://jax.readthedocs.io/en/latest/pytrees.html">pytree</a>, ie tuples, dictionaries, nested combinations of them, etc… (there is no requirement on the data format of the <code class="docutils literal notranslate"><span class="pre">x</span></code> variable). To demonstrate, consider a problem which is just two copies of the noisy funnel problem:</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">JaxPyTreeFunnelMuseProblem</span><span class="p">(</span><span class="n">JittableJaxMuseProblem</span><span class="p">):</span>
@@ -543,7 +595,7 @@ get_H: 100%|██████████| 30/30 [00:00&lt;00:00, 251.22it/s]
         <span class="n">z2</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">keys</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N</span><span class="p">,))</span> <span class="o">*</span> <span class="n">jnp</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">θ2</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
         <span class="n">x1</span> <span class="o">=</span> <span class="n">z1</span> <span class="o">+</span> <span class="n">jax</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">keys</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N</span><span class="p">,))</span>
         <span class="n">x2</span> <span class="o">=</span> <span class="n">z2</span> <span class="o">+</span> <span class="n">jax</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">keys</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N</span><span class="p">,))</span>
-        <span class="k">return</span> <span class="n">XZSample</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;x1&quot;</span><span class="p">:</span><span class="n">x1</span><span class="p">,</span> <span class="s2">&quot;x2&quot;</span><span class="p">:</span><span class="n">x2</span><span class="p">},</span> <span class="n">z</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;z1&quot;</span><span class="p">:</span><span class="n">z1</span><span class="p">,</span> <span class="s2">&quot;z2&quot;</span><span class="p">:</span><span class="n">z2</span><span class="p">})</span>
+        <span class="k">return</span> <span class="p">({</span><span class="s2">&quot;x1&quot;</span><span class="p">:</span><span class="n">x1</span><span class="p">,</span> <span class="s2">&quot;x2&quot;</span><span class="p">:</span><span class="n">x2</span><span class="p">},</span> <span class="p">{</span><span class="s2">&quot;z1&quot;</span><span class="p">:</span><span class="n">z1</span><span class="p">,</span> <span class="s2">&quot;z2&quot;</span><span class="p">:</span><span class="n">z2</span><span class="p">})</span>
 
     <span class="nd">@partial</span><span class="p">(</span><span class="n">jax</span><span class="o">.</span><span class="n">jit</span><span class="p">,</span> <span class="n">static_argnums</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">logLike</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">θ</span><span class="p">):</span>
@@ -560,7 +612,7 @@ get_H: 100%|██████████| 30/30 [00:00&lt;00:00, 251.22it/s]
 </div>
 <p>Here, <code class="docutils literal notranslate"><span class="pre">x</span></code>, <code class="docutils literal notranslate"><span class="pre">θ</span></code>, and <code class="docutils literal notranslate"><span class="pre">z</span></code> are all dictionaries. We generate the problem as usual, passing in parameters as dictionaries,</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">θ_true</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">θ1</span><span class="o">=-</span><span class="mf">1.</span><span class="p">,</span> <span class="n">θ2</span><span class="o">=</span><span class="mf">2.</span><span class="p">)</span>
@@ -569,7 +621,7 @@ get_H: 100%|██████████| 30/30 [00:00&lt;00:00, 251.22it/s]
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">prob</span> <span class="o">=</span> <span class="n">JaxPyTreeFunnelMuseProblem</span><span class="p">(</span><span class="mi">10000</span><span class="p">)</span>
@@ -581,7 +633,7 @@ get_H: 100%|██████████| 30/30 [00:00&lt;00:00, 251.22it/s]
 </div>
 <p>and run MUSE:</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">result</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">θ_start</span><span class="o">=</span><span class="n">θ_start</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">jax</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">PRNGKey</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">progress</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -593,13 +645,13 @@ get_H: 100%|██████████| 30/30 [00:00&lt;00:00, 251.22it/s]
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-MUSE: 100%|██████████| 5050/5050 [00:08&lt;00:00, 580.71it/s]
-get_H: 100%|██████████| 50/50 [00:00&lt;00:00, 138.65it/s]
+MUSE: 100%|██████████| 5050/5050 [00:08&lt;00:00, 565.94it/s]
+get_H: 100%|██████████| 50/50 [00:00&lt;00:00, 174.02it/s]
 </pre></div></div>
 </div>
-<p>The result is returned as a dictionary:</p>
+<p>The result is returned as a pytree:</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">result</span><span class="o">.</span><span class="n">θ</span>
@@ -607,18 +659,18 @@ get_H: 100%|██████████| 50/50 [00:00&lt;00:00, 138.65it/s]
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-{&#39;θ1&#39;: DeviceArray(-1.0030082, dtype=float32),
- &#39;θ2&#39;: DeviceArray(2.0271263, dtype=float32)}
+{&#39;θ1&#39;: DeviceArray(-1.0024003, dtype=float32),
+ &#39;θ2&#39;: DeviceArray(2.0271273, dtype=float32)}
 </pre></div></div>
 </div>
 <p>and the covariance as a matrix:</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">result</span><span class="o">.</span><span class="n">Σ</span>
@@ -626,13 +678,50 @@ get_H: 100%|██████████| 50/50 [00:00&lt;00:00, 138.65it/s]
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-array([[ 3.3970999e-03, -3.8145434e-05],
-       [-3.8145430e-05,  2.4442433e-04]], dtype=float32)
+array([[ 3.3699032e-03, -1.7559714e-05],
+       [-1.7559714e-05,  2.4587807e-04]], dtype=float32)
+</pre></div></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">result.ravel</span></code> and <code class="docutils literal notranslate"><span class="pre">result.unravel</span></code> functions can be used to convert between pytree and vector representations of the parameters. For example, to compute the standard deviation for each parameter (the square root of the diagonal of the covariance):</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">result</span><span class="o">.</span><span class="n">unravel</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">Σ</span><span class="p">)))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+{&#39;θ1&#39;: DeviceArray(0.05805087, dtype=float32),
+ &#39;θ2&#39;: DeviceArray(0.0156805, dtype=float32)}
+</pre></div></div>
+</div>
+<p>or to convert the mean parameters to a vector:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">result</span><span class="o">.</span><span class="n">ravel</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">θ</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+DeviceArray([-1.0024003,  2.0271273], dtype=float32)
 </pre></div></div>
 </div>
 </section>

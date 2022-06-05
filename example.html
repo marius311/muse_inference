@@ -438,7 +438,7 @@ x_i &amp;\sim {\rm Normal}(z_i, 1)
 <div class="output_area rendered_html docutils container">
 <div>
   <progress value='1000' class='' max='1000' style='width:300px; height:20px; vertical-align: middle;'></progress>
-  100.00% [1000/1000 00:25<00:00 Sampling chain 0, 0 divergences]
+  100.00% [1000/1000 00:21<00:00 Sampling chain 0, 0 divergences]
 </div></div>
 </div>
 <p>We next compute the MUSE estimate for the same problem. To reach the same Monte Carlo error as HMC, the number of MUSE simulations should be the same as the effective sample size of the chain we just ran. This is:</p>
@@ -478,8 +478,8 @@ x_i &amp;\sim {\rm Normal}(z_i, 1)
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-MUSE: 100%|██████████| 3000/3000 [00:13&lt;00:00, 218.37it/s]
-get_H: 100%|██████████| 15/15 [00:00&lt;00:00, 34.38it/s]
+MUSE: 100%|██████████| 3000/3000 [00:13&lt;00:00, 226.59it/s]
+get_H: 100%|██████████| 15/15 [00:00&lt;00:00, 31.33it/s]
 </pre></div></div>
 </div>
 <p>Lets also try mean-field variational inference (MFVI) to compare to another approximate method.</p>
@@ -517,7 +517,7 @@ get_H: 100%|██████████| 15/15 [00:00&lt;00:00, 34.38it/s]
 <div class="output_area rendered_html docutils container">
 <div>
   <progress value='10000' class='' max='10000' style='width:300px; height:20px; vertical-align: middle;'></progress>
-  100.00% [10000/10000 01:40<00:00 Average Loss = 17,851]
+  100.00% [10000/10000 01:34<00:00 Average Loss = 17,851]
 </div></div>
 </div>
 <p>Now lets plot the different estimates. In this case, MUSE gives a nearly perfect answer using only a fraction posterior gradient calls. MFVI struggles in both speed and accuracy by comparison.</p>
@@ -538,7 +538,7 @@ get_H: 100%|██████████| 15/15 [00:00&lt;00:00, 34.38it/s]
     <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">nfev</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">history</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="p">[</span><span class="n">h</span><span class="p">[</span><span class="s2">&quot;MAP_history_dat&quot;</span><span class="p">]]</span><span class="o">+</span><span class="n">h</span><span class="p">[</span><span class="s2">&quot;MAP_history_sims&quot;</span><span class="p">]]</span>
 <span class="p">)</span>
 <span class="n">plot</span><span class="p">(</span>
-    <span class="n">θs</span><span class="p">,</span> <span class="n">stats</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">θ</span><span class="p">,</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">Σ</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]))</span><span class="o">.</span><span class="n">pdf</span><span class="p">(</span><span class="n">θs</span><span class="p">),</span>
+    <span class="n">θs</span><span class="p">,</span> <span class="n">stats</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">θ</span><span class="p">[</span><span class="s2">&quot;θ&quot;</span><span class="p">],</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">Σ</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]))</span><span class="o">.</span><span class="n">pdf</span><span class="p">(</span><span class="n">θs</span><span class="p">),</span>
     <span class="n">color</span><span class="o">=</span><span class="s2">&quot;C1&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;MUSE (</span><span class="si">%.2f</span><span class="s2">s,  </span><span class="si">%i</span><span class="s2"> ∇logP calls)&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">t_muse</span><span class="p">,</span> <span class="n">ncalls_muse</span><span class="p">)</span>
 <span class="p">)</span>
 <span class="n">hist</span><span class="p">(</span>
@@ -561,7 +561,8 @@ get_H: 100%|██████████| 15/15 [00:00&lt;00:00, 34.38it/s]
 <img alt="_images/example_18_0.png" src="_images/example_18_0.png" />
 </div>
 </div>
-<p>Note that due to PyMC overhead, the timing difference between HMC and MUSE is less drastic than the number of gradient calls. For more realistic and expensive posterior functions, this overhead becomes negligible. If you are working with small problems and need less overhead, the Jax or Numpy interfaces will be faster (or even consider using the Julia package <a class="reference external" href="https://cosmicmar.com/MuseInference.jl">MuseInference.jl</a> which is the fastest of all options).</p>
+<p>Note that due to PyMC overhead, the timing difference between HMC and MUSE is less drastic than the number of gradient calls would imply. For more realistic and expensive posterior functions, this overhead becomes negligible and you can see speedups of 10-100X or more (depending on problem and latent space dimensoinality). If you are working with small problems and need less overhead, the Jax or Numpy interfaces will be faster (or even consider using the Julia package
+<a class="reference external" href="https://cosmicmar.com/MuseInference.jl">MuseInference.jl</a> which is the fastest of all options).</p>
 </section>
 
 
