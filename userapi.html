@@ -415,8 +415,8 @@ Populating the interactive namespace from numpy and matplotlib
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-MUSE: 100%|██████████| 5050/5050 [00:10&lt;00:00, 482.12it/s]
-get_H: 100%|██████████| 70/70 [00:02&lt;00:00, 34.14it/s]
+MUSE: 100%|██████████| 5050/5050 [00:09&lt;00:00, 556.60it/s]
+get_H: 100%|██████████| 70/70 [00:01&lt;00:00, 44.36it/s]
 </pre></div></div>
 </div>
 <p>When there are multiple parameters, the starting guess should be specified as as a dictionary, as above.</p>
@@ -435,7 +435,7 @@ get_H: 100%|██████████| 70/70 [00:02&lt;00:00, 34.14it/s]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-{&#39;μ&#39;: array([0.30925762, 0.52790826]), &#39;σ&#39;: array(0.82363501)}
+{&#39;μ&#39;: array([0.33948043, 0.52322182]), &#39;σ&#39;: array(0.79285756)}
 </pre></div></div>
 </div>
 <p>and the covariance as matrix, with parameters concatenated in the order they appear in the model (or in the order specified in <code class="docutils literal notranslate"><span class="pre">params</span></code>, if that was used):</p>
@@ -453,9 +453,9 @@ get_H: 100%|██████████| 70/70 [00:02&lt;00:00, 34.14it/s]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-array([[ 0.02413354,  0.00275797, -0.01015742],
-       [ 0.00275797,  0.0151224 , -0.00579965],
-       [-0.01015742, -0.00579965,  0.02910923]])
+array([[ 0.02566017,  0.00588293, -0.00267772],
+       [ 0.00588293,  0.01675884, -0.00143907],
+       [-0.00267772, -0.00143907,  0.00938469]])
 </pre></div></div>
 </div>
 <p>The <code class="docutils literal notranslate"><span class="pre">result.ravel</span></code> and <code class="docutils literal notranslate"><span class="pre">result.unravel</span></code> functions can be used to convert between dictionary and vector representations of the parameters. For example, to compute the standard deviation for each parameter (the square root of the diagonal of the covariance):</p>
@@ -473,7 +473,7 @@ array([[ 0.02413354,  0.00275797, -0.01015742],
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-{&#39;μ&#39;: array([0.15534974, 0.12297316]), &#39;σ&#39;: array(0.17061428)}
+{&#39;μ&#39;: array([0.16018792, 0.12945595]), &#39;σ&#39;: array(0.09687461)}
 </pre></div></div>
 </div>
 <p>or to convert the mean parameters to a vector:</p>
@@ -491,7 +491,7 @@ array([[ 0.02413354,  0.00275797, -0.01015742],
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-array([0.30925762, 0.52790826, 0.82363501])
+array([0.33948043, 0.52322182, 0.79285756])
 </pre></div></div>
 </div>
 </section>
@@ -571,8 +571,8 @@ WARNING:absl:No GPU/TPU found, falling back to CPU. (Set TF_CPP_MIN_LOG_LEVEL=0 
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-MUSE: 100%|██████████| 5050/5050 [00:00&lt;00:00, 6645.28it/s]
-get_H: 100%|██████████| 30/30 [00:00&lt;00:00, 313.68it/s]
+MUSE: 100%|██████████| 5050/5050 [00:00&lt;00:00, 7746.18it/s]
+get_H: 100%|██████████| 30/30 [00:00&lt;00:00, 407.97it/s]
 </pre></div></div>
 </div>
 <p>Note that the solution here is obtained around 10X faster that the PyMC version of this in the <a class="reference external" href="example.html">Example</a> page (the cloud machines which build these docs don’t always achieve the 10X, but you see this if you run these examples locally). The Jax interface has much lower overhead, which will be noticeable for very fast posteriors like the one above.</p>
@@ -645,8 +645,8 @@ get_H: 100%|██████████| 30/30 [00:00&lt;00:00, 313.68it/s]
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-MUSE: 100%|██████████| 5050/5050 [00:08&lt;00:00, 565.94it/s]
-get_H: 100%|██████████| 50/50 [00:00&lt;00:00, 174.02it/s]
+MUSE: 100%|██████████| 5050/5050 [00:07&lt;00:00, 672.81it/s]
+get_H: 100%|██████████| 50/50 [00:00&lt;00:00, 197.69it/s]
 </pre></div></div>
 </div>
 <p>The result is returned as a pytree:</p>
