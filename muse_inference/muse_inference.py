@@ -1,5 +1,5 @@
 
-__all__ = ["MuseProblem", "MuseResult", "XZSample", "ScoreAndMAP"]
+__all__ = ["MuseProblem", "MuseResult", "ScoreAndMAP"]
 
 from collections import namedtuple
 from copy import copy
@@ -48,7 +48,6 @@ class MuseResult():
 
 
 
-XZSample = namedtuple("XZSample", "x z")
 ScoreAndMAP = namedtuple("ScoreAndMAP", "s s̃ z history")
 
 class MuseProblem():
@@ -213,14 +212,14 @@ class MuseProblem():
         θ̃unreg = θ̃ = self.transform_θ(θ)
 
         if z0 is None:
-            z0 = self.sample_x_z(self._split_rng(rng,1)[0], θ).z
+            (_, z0) = self.sample_x_z(self._split_rng(rng,1)[0], θ)
 
         ravel, unravel = self._ravel_unravel(θ̃)
         Nθ = len(ravel(θ̃))
         
         xz_sims = [self.sample_x_z(_rng, θ) for _rng in self._split_rng(rng, nsims)]
-        xs = [self.x] + [sim.x for sim in xz_sims]
-        ẑs = [z0]     + [z0 if z0 is not None else sim.z for sim in xz_sims]
+        xs = [self.x] + [x for (x,_) in xz_sims]
+        ẑs = [z0]     + [z0 if z0 is not None else z for (_, z) in xz_sims]
 
         pbar = tqdm(total=(maxsteps-len(result.history))*(nsims+1), desc="MUSE") if progress else None
 
@@ -231,7 +230,7 @@ class MuseProblem():
                 t0 = datetime.now()
 
                 if i > 1:
-                    xs = [self.x] + [self.sample_x_z(_rng, θ).x for _rng in self._split_rng(rng,nsims)]
+                    xs = [self.x] + [self.sample_x_z(_rng, θ)[0] for _rng in self._split_rng(rng,nsims)]
                     s_MAP_tol = np.sqrt(np.diag(-H̃_inv_post)) * θ_rtol
 
                 if i > 2:
@@ -416,7 +415,7 @@ class MuseProblem():
 
                 def get_s_MAP(θvec):
                     θ = unravel(θvec)
-                    x = self.sample_x_z(copy(rng), θ).x
+                    (x, _) = self.sample_x_z(copy(rng), θ)
                     return ravel(self.gradθ_logLike_at_zMAP(x, z_guess, θ0, method=method, θ_tol=s_MAP_tol).s)
 
                 try:

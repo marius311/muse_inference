@@ -15,7 +15,7 @@ from scipy.optimize import minimize
 import pymc as pm
 from pymc.distributions import joint_logpt
 
-from .muse_inference import MuseProblem, ScoreAndMAP, XZSample
+from .muse_inference import MuseProblem
 
 
 class PyMCMuseProblem(MuseProblem):
@@ -139,7 +139,7 @@ class PyMCMuseProblem(MuseProblem):
             self.model.rng_seq.pop() # the call to next_rng undesiredly (for this) added it to rng_seq, so remove it
             rng.get_value(borrow=True).set_state(state)
         *x, z = self._sample_x_z(np.atleast_1d(θ))
-        return XZSample(x, z)
+        return (x, z)
 
     def gradθ_and_hessθ_logPrior(self, θ, transformed_θ):
         _dlogprior_d2logprior = self._dlogprior_d2logprior_transθ if transformed_θ else self._dlogprior_d2logprior_untransθ

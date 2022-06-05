@@ -88,7 +88,6 @@ from functools import partial
 import jax
 import jax.numpy as jnp
 from muse_inference.jax import JittableJaxMuseProblem, JaxMuseProblem
-from muse_inference import XZSample
 ```
 
 Let's implement the noisy funnel problem from the [Example](example.html) page. To do so, extend either `JaxMuseProblem`, or, if your code is able to be JIT compiled by Jax, extend `JittableJaxMuseProblem` and decorate the functions with `jax.jit`:
@@ -105,7 +104,7 @@ class JaxFunnelMuseProblem(JittableJaxMuseProblem):
         keys = jax.random.split(key, 2)
         z = jax.random.normal(keys[0], (self.N,)) * jnp.exp(θ/2)
         x = z + jax.random.normal(keys[1], (self.N,))
-        return XZSample(x, z)
+        return (x, z)
 
     @partial(jax.jit, static_argnums=0)
     def logLike(self, x, z, θ):
@@ -155,7 +154,7 @@ class JaxPyTreeFunnelMuseProblem(JittableJaxMuseProblem):
         z2 = jax.random.normal(keys[1], (self.N,)) * jnp.exp(θ2/2)        
         x1 = z1 + jax.random.normal(keys[2], (self.N,))
         x2 = z2 + jax.random.normal(keys[3], (self.N,))        
-        return XZSample(x={"x1":x1, "x2":x2}, z={"z1":z1, "z2":z2})
+        return ({"x1":x1, "x2":x2}, {"z1":z1, "z2":z2})
 
     @partial(jax.jit, static_argnums=0)
     def logLike(self, x, z, θ):

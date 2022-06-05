@@ -10,7 +10,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import pymc as pm
-from muse_inference import MuseProblem, MuseResult, ScoreAndMAP, XZSample
+from muse_inference import MuseProblem, MuseResult
 from muse_inference.jax import JaxMuseProblem, JittableJaxMuseProblem
 from muse_inference.pymc import PyMCMuseProblem
 
@@ -26,7 +26,7 @@ def test_scalar_numpy():
         def sample_x_z(self, rng, θ):
             z = rng.normal(size=self.N) * np.exp(θ/2)
             x = z + rng.normal(size=self.N)
-            return XZSample(x, z)
+            return (x, z)
         
         def logLike_and_gradzθ_logLike(self, x, z, θ, transformed_θ=None):
             logLike = -(np.sum((x - z)**2) + np.sum(z**2) / np.exp(θ) + 512*θ) / 2
@@ -68,7 +68,7 @@ def test_ravel_numpy():
             z2 = rng.normal(size=self.N) * np.exp(θ2/2)        
             x1 = z1 + rng.normal(size=self.N)
             x2 = z2 + rng.normal(size=self.N)        
-            return XZSample((x1,x2), (z1,z2))
+            return ((x1,x2), (z1,z2))
         
         def logLike_and_gradzθ_logLike(self, x, z, θ, transformed_θ=None):
             (θ1, θ2) = θ
@@ -119,7 +119,7 @@ def test_scalar_jax():
             keys = jax.random.split(key, 2)
             z = jax.random.normal(keys[0], (self.N,)) * jnp.exp(θ/2)
             x = z + jax.random.normal(keys[1], (self.N,))
-            return XZSample(x, z)
+            return (x, z)
 
         @partial(jax.jit, static_argnums=0)
         def logLike(self, x, z, θ):
@@ -162,7 +162,7 @@ def test_ravel_jax():
             z2 = jax.random.normal(keys[1], (self.N,)) * jnp.exp(θ2/2)        
             x1 = z1 + jax.random.normal(keys[2], (self.N,))
             x2 = z2 + jax.random.normal(keys[3], (self.N,))        
-            return XZSample(x={"x1":x1, "x2":x2}, z={"z1":z1, "z2":z2})
+            return ({"x1":x1, "x2":x2}, {"z1":z1, "z2":z2})
 
         @partial(jax.jit, static_argnums=0)
         def logLike(self, x, z, θ):
