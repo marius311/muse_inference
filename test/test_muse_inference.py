@@ -92,7 +92,6 @@ def test_ravel_numpy():
     θ_start = (0., 0.)
 
     prob = NumpyFunnelMuseProblem(512)
-    ravel, unravel = prob._ravel_unravel(θ_true)
     rng = np.random.RandomState(0)
     prob.x = prob.sample_x_z(rng, θ_true)[0]
 
@@ -102,7 +101,7 @@ def test_ravel_numpy():
 
     assert isinstance(result.θ, tuple)
     assert result.Σ.shape == (2,2)
-    assert result.dist.cdf(ravel(θ_true)) > 0.01
+    assert result.dist.cdf(result.ravel(θ_true)) > 0.01
 
 
 
@@ -133,7 +132,6 @@ def test_scalar_jax():
     θ_start = 0.
 
     prob = JaxFunnelMuseProblem(512)
-    ravel, unravel = prob._ravel_unravel(θ_start)
     keys = prob._split_rng(jax.random.PRNGKey(0), 3)
     (x, z) = prob.sample_x_z(keys[0], θ_true)
     prob.x = x
@@ -143,7 +141,7 @@ def test_scalar_jax():
 
     assert result.θ.shape == ()
     assert result.Σ.shape == (1,1)
-    assert result.dist.cdf(ravel(θ_true)) > 0.01
+    assert result.dist.cdf(result.ravel(θ_true)) > 0.01
 
 
 def test_ravel_jax():
@@ -179,7 +177,6 @@ def test_ravel_jax():
     θ_start = {"θ1":0., "θ2":0.}
 
     prob = JaxFunnelMuseProblem(512)
-    ravel, unravel = prob._ravel_unravel(θ_true)
     keys = prob._split_rng(jax.random.PRNGKey(0), 3)
     (x, z) = prob.sample_x_z(keys[0], θ_true)
     prob.x = x
@@ -189,7 +186,7 @@ def test_ravel_jax():
 
     assert isinstance(result.θ, dict) and result.θ["θ1"].shape == result.θ["θ2"].shape == ()
     assert result.Σ.shape == (2,2)
-    assert result.dist.cdf(ravel(θ_true)) > 0.01
+    assert result.dist.cdf(result.ravel(θ_true)) > 0.01
 
 
 def test_scalar_pymc():
@@ -212,7 +209,7 @@ def test_scalar_pymc():
     result = prob.solve(θ_start=θ_start, rng=np.random.SeedSequence(1))
     prob.get_J(result, nsims=len(result.s_MAP_sims)+10, rng=np.random.SeedSequence(2))
 
-    # assert isinstance(result.θ, Number)
+    assert isinstance(result.θ, dict) and result.θ["θ"].shape == ()
     assert result.Σ.shape == (1,1)
     assert result.dist.cdf(θ_true) > 0.01
 
@@ -240,6 +237,6 @@ def test_ravel_pymc():
     result = prob.solve(θ_start=θ_start, rng=np.random.SeedSequence(1))
     prob.get_J(result, nsims=len(result.s_MAP_sims)+10, rng=np.random.SeedSequence(2))
 
-    # assert isinstance(result.θ, dict) and result.θ["θ1"].shape == result.θ["θ2"].shape == ()
+    assert isinstance(result.θ, dict) and result.θ["θ1"].shape == result.θ["θ2"].shape == ()
     assert result.Σ.shape == (2,2)
-    assert result.dist.cdf(prob.standardize_θ(θ_true)) > 0.01
+    assert result.dist.cdf(result.ravel(θ_true)) > 0.01
