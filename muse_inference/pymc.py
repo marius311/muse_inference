@@ -52,6 +52,12 @@ class PyMCMuseProblem(MuseProblem):
         θ_vals = [rvs_to_values[v] for v in θ_RVs]
         z_vals = [rvs_to_values[v] for v in z_RVs]
 
+        # create ravel / unravel functions for parameter dict
+        θ_dict = dict(zip([v.name for v in θ_RVs], aesara.function([], θ_RVs)()))
+        self._ravel_θ, self._unravel_θ = self._ravel_unravel(θ_dict)
+        # raveling / unraveling z is handled in aesara
+        self._ravel_z = self._unravel_z = lambda x: x
+
         # get log-prior density
         logpriort = at.sum([logpt.sum() for (logpt, var) in zip(model.logpt(sum=False, jacobian=True), model.basic_RVs) if var in θ_RVs])
 
@@ -114,36 +120,42 @@ class PyMCMuseProblem(MuseProblem):
         is_scalar_θ = len(self.θ_RVs) == 1 and aesara.function([], self.θ_RVs[0].size)() == 1
         if isinstance(θ, Number) and is_scalar_θ:
             return [θ]
-        elif isinstance(θ, dict):
-            return self.np.concatenate([θ[var.name] for var in self.θ_RVs], axis=None)
+        elif isinstance(θ, dict) and set(θ.keys()) == set(v.name for v in self.θ_RVs):
+            return θ
         else:
-            raise Exception("θ should be a dict with keys: " + ", ".join([var.name for var in self.θ_RVs]))
+            raise Exception(
+                "θ should be " + 
+                ("a number or " if is_scalar_θ else "") +
+                "a dict with keys: " + 
+                ", ".join([var.name for var in self.θ_RVs])
+            )
 
-    def transform_θ(self, θ):
-        return self._transform_θ(np.atleast_1d(θ))
+    def transform_θ(self, θ_dict):
+        return self.unravel_θ(self._transform_θ(self.ravel_θ(θ_dict)))
 
-    def inv_transform_θ(self, θ):
-        return self._inv_transform_θ(np.atleast_1d(θ))
+    def inv_transform_θ(self, θ_dict):
+        return self.unravel_θ(self._inv_transform_θ(self.ravel_θ(θ_dict)))
 
     def has_θ_transform(self):
         return self._has_θ_transform
 
-    def logLike_and_gradzθ_logLike(self, x, z_vec, θ_vec, transformed_θ):
+    def logLike_and_gradzθ_logLike(self, x, z_vec, θ_dict, transformed_θ):
         _logp_dzθlogp = self._logp_dzθlogp_transθ if transformed_θ else self._logp_dzθlogp_untransθ
-        return _logp_dzθlogp(*x, z_vec, np.atleast_1d(θ_vec))
+        logLike, gradz_logLike, gradθ_logLike = _logp_dzθlogp(*x, z_vec, self.ravel_θ(θ_dict))
+        return logLike, gradz_logLike, self._unravel_θ(gradθ_logLike)
 
-    def sample_x_z(self, rng, θ):
+    def sample_x_z(self, rng, θdict):
         self.model.rng_seeder = rng
         for rng in self.model.rng_seq:
             state = self.model.next_rng().get_value(borrow=True).get_state()
             self.model.rng_seq.pop() # the call to next_rng undesiredly (for this) added it to rng_seq, so remove it
             rng.get_value(borrow=True).set_state(state)
-        *x, z = self._sample_x_z(np.atleast_1d(θ))
+        *x, z = self._sample_x_z(self.ravel_θ(θdict))
         return (x, z)
 
-    def gradθ_and_hessθ_logPrior(self, θ, transformed_θ):
+    def gradθ_and_hessθ_logPrior(self, θ_dict, transformed_θ):
         _dlogprior_d2logprior = self._dlogprior_d2logprior_transθ if transformed_θ else self._dlogprior_d2logprior_untransθ
-        return _dlogprior_d2logprior(np.atleast_1d(θ))
+        return _dlogprior_d2logprior(self.ravel_θ(θ_dict))
 
     def _ravel_unravel_tensors(self, tensors, name, is_RV=True):
         tensors_raveled = at.vector(name=name)

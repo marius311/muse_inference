@@ -44,7 +44,8 @@ class JaxMuseProblem(MuseProblem):
         ravel, unravel = self._ravel_unravel(z_guess)
         
         soln = minimize(
-            lambda z_vec: -self.logLike(x, unravel(z_vec), θ), ravel(z_guess), 
+            lambda z_vec: -self.logLike(x, unravel(z_vec), θ), 
+            ravel(z_guess), 
             method = method,
             options = options
         )

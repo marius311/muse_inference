@@ -184,12 +184,12 @@ class MuseProblem():
             ravel = lambda val: np.array([val])
             unravel = lambda vec: vec.item()
         elif isinstance(x, dict):
-            sorted_keys = sorted(x.keys())
-            ravel_to_tup = lambda dct: tuple(dct[k] for k in sorted_keys)
-            unravel_from_tup = lambda tup: {k: v for (k, v) in zip(sorted_keys, tup)}
-            ravel_from_tup, unravel_to_tup = self._ravel_unravel(ravel_to_tup(x))
-            ravel = lambda dct: ravel_from_tup(ravel_to_tup(dct))
-            unravel = lambda vec: unravel_from_tup(unravel_to_tup(vec))
+            keys = x.keys()
+            ravel_to_tup = lambda dct: tuple(dct[k] for k in keys) if isinstance(dct, dict) else dct
+            unravel_tup = lambda tup: {k: v for (k, v) in zip(keys, tup)}
+            ravel_tup, unravel_to_tup = self._ravel_unravel(ravel_to_tup(x))
+            ravel = lambda dct: ravel_tup(ravel_to_tup(dct))
+            unravel = lambda vec: unravel_tup(unravel_to_tup(vec))
         else:
             ravel = unravel = lambda z: z
         return (ravel, unravel)
