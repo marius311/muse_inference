@@ -29,22 +29,23 @@ class MuseResult():
         self.s_MAP_sims = []
         self.Hs = []
         self.rng = None
+        self.ravel = None
+        self.unravel = None
         self.time = timedelta(0)
 
     def finalize(self, prob):
         if self.J is not None and self.H is not None and self.θ is not None:
 
-            ravel, unravel = prob._ravel_unravel(self.θ)
-            Nθ = len(ravel(self.θ))
+            Nθ = len(self.ravel(self.θ))
 
-            H_prior = ravel(prob.gradθ_and_hessθ_logPrior(self.θ, transformed_θ=False)[1]).reshape(Nθ,Nθ)
+            H_prior = self.ravel(prob.gradθ_and_hessθ_logPrior(self.θ, transformed_θ=False)[1]).reshape(Nθ,Nθ)
             self.Σ_inv = self.H.T @ np.linalg.inv(self.J) @ self.H - H_prior
             self.Σ = np.linalg.inv(self.Σ_inv)
             if self.θ is not None:
                 if Nθ == 1:
-                    self.dist = sp.stats.norm(ravel(self.θ), np.sqrt(self.Σ[0,0]))
+                    self.dist = sp.stats.norm(self.ravel(self.θ), np.sqrt(self.Σ[0,0]))
                 else:
-                    self.dist = sp.stats.multivariate_normal(ravel(self.θ), self.Σ)
+                    self.dist = sp.stats.multivariate_normal(self.ravel(self.θ), self.Σ)
 
 
 
@@ -54,6 +55,10 @@ class MuseProblem():
 
     def __init__(self):
         self.x = None
+        self._ravel_θ = None
+        self._ravel_z = None
+        self._unravel_θ = None
+        self._unravel_z = None
         self.np = np
 
     def standardize_θ(self, θ):
@@ -71,11 +76,17 @@ class MuseProblem():
     def sample_x_z(self, θ):
         raise NotImplementedError()
 
+    def z_MAP_guess_from_truth(self, x, z, θ):
+        return self.unravel_z(0 * self.ravel_z(z))
+
     def gradθ_and_hessθ_logPrior(self, θ, transformed_θ=False):
         return (0,0)
 
     def logLike_and_gradzθ_logLike(self, x, z, θ):
         raise NotImplementedError()
+
+    def _split_rng(self, rng: SeedSequence, N):
+        return [default_rng(s) for s in copy(rng).spawn(N)]
 
     def gradθ_logLike_at_zMAP(
         self, 
@@ -102,9 +113,6 @@ class MuseProblem():
         gradθ_logLikes = []
         terminate = False
 
-        ravel_z, unravel_z = self._ravel_unravel(z_guess)
-        ravel_θ, unravel_θ = self._ravel_unravel(θ)
-
         θ̃ = self.transform_θ(θ)
 
         # compute joint (z-θ)-gradient, save θ part and return z part
@@ -115,20 +123,20 @@ class MuseProblem():
             if terminate:
                 return (0, 0*z_guess)
             else:
-                logLike, gradz_logLike, last_gradθ_logLike = self.logLike_and_gradzθ_logLike(x, unravel_z(z_vec), θ̃, transformed_θ=True)
-                return (-logLike, -ravel_z(gradz_logLike))
+                logLike, gradz_logLike, last_gradθ_logLike = self.logLike_and_gradzθ_logLike(x, self.unravel_z(z_vec), θ̃, transformed_θ=True)
+                return (-logLike, -self.ravel_z(gradz_logLike))
         
         # check if θ-gradient is converged
         def callback(z_vec, *args):
             nonlocal terminate
-            gradθ_logLikes.append(ravel_θ(last_gradθ_logLike))
+            gradθ_logLikes.append(self.ravel_θ(last_gradθ_logLike))
             if θ_tol is not None and len(gradθ_logLikes) >= 2:
                 Δgradθ = gradθ_logLikes[-1] - gradθ_logLikes[-2]
                 if all(np.abs(Δgradθ) < θ_tol):
                     terminate = True
         
         # run optimization
-        soln = minimize(objective, z_guess, method=method, jac=True, callback=callback, options=options)
+        soln = minimize(objective, self.ravel_z(z_guess), method=method, jac=True, callback=callback, options=options)
 
         # save some debug info
         soln.gradθ_logLikes = gradθ_logLikes
@@ -136,12 +144,27 @@ class MuseProblem():
         soln.convergence_type = "gradθ stable" if soln.success_gradθ else "gradz tolerance" if soln.success else "not converged"
         soln.θ_tol = θ_tol
 
-        z = unravel_z(soln.x)
+        z = self.unravel_z(soln.x)
         s̃ = self.logLike_and_gradzθ_logLike(x, z, θ̃, transformed_θ=True)[2]
         s = self.logLike_and_gradzθ_logLike(x, z, θ, transformed_θ=False)[2] if self.has_θ_transform() else s̃
         history = soln
         return ScoreAndMAP(s, s̃, z, history)
 
+    def ravel_θ(self, θ):
+        if self._ravel_θ is None:
+            self._ravel_θ, self._unravel_θ = self._ravel_unravel(θ)
+        return self._ravel_θ(θ)
+
+    def unravel_θ(self, θ):
+        return self._unravel_θ(θ)
+
+    def ravel_z(self, z):
+        if self._ravel_z is None:
+            self._ravel_z, self._unravel_z = self._ravel_unravel(z)
+        return self._ravel_z(z)
+
+    def unravel_z(self, z):
+        return self._unravel_z(z)
 
     def _ravel_unravel(self, x):
         np = self.np
@@ -171,15 +194,12 @@ class MuseProblem():
             ravel = unravel = lambda z: z
         return (ravel, unravel)
 
-    def _split_rng(self, rng: SeedSequence, N):
-        return [default_rng(s) for s in copy(rng).spawn(N)]
-
     def solve(
         self,
         θ_start = None,
         result = None,
         rng = None,
-        z0 = None,
+        z0 = 0,
         maxsteps = 50,
         θ_rtol = 1e-2,
         z_tol = None,
@@ -207,15 +227,21 @@ class MuseProblem():
 
         s_MAP_tol = s_MAP_tol_initial
 
+        if result.ravel is None:
+            (result.ravel, result.unravel) = self.ravel_θ, self.unravel_θ
+
         MAP_history_dat = MAP_history_sims = None
         θunreg = θ = self.standardize_θ(result.θ if result.θ is not None else θ_start)
         θ̃unreg = θ̃ = self.transform_θ(θ)
 
-        if z0 is None:
-            (_, z0) = self.sample_x_z(self._split_rng(rng,1)[0], θ)
+        if z0 in ["prior", 0]:
+            (_, z) = self.sample_x_z(self._split_rng(rng,1)[0], θ)
+            if z0 == "prior":
+                z0 = z
+            else:
+                z0 = self.unravel_z(0 * self.ravel_z(z))
 
-        ravel, unravel = self._ravel_unravel(θ̃)
-        Nθ = len(ravel(θ̃))
+        Nθ = len(self.ravel_θ(θ̃))
         
         xz_sims = [self.sample_x_z(_rng, θ) for _rng in self._split_rng(rng, nsims)]
         xs = [self.x] + [x for (x,_) in xz_sims]
@@ -234,7 +260,7 @@ class MuseProblem():
                     s_MAP_tol = np.sqrt(np.diag(-H̃_inv_post)) * θ_rtol
 
                 if i > 2:
-                    Δθ̃ = ravel(result.history[-1]["θ̃"]) - ravel(result.history[-2]["θ̃"])
+                    Δθ̃ = self.ravel_θ(result.history[-1]["θ̃"]) - self.ravel_θ(result.history[-2]["θ̃"])
                     if np.sqrt(-np.inner(Δθ̃, np.inner(np.linalg.pinv(result.history[-1]["H̃_inv_post"]), Δθ̃))) < θ_rtol:
                         break
 
@@ -252,12 +278,12 @@ class MuseProblem():
                     MAP_history_dat, *MAP_history_sims = [MAP.history for MAP in MAPs]
                 s_MAP_dat, *s_MAP_sims = [MAP.s for MAP in MAPs]
                 s̃_MAP_dat, *s̃_MAP_sims = [MAP.s̃ for MAP in MAPs]
-                s̃_MUSE = unravel(ravel(s̃_MAP_dat) - np.mean(np.stack(list(map(ravel, s̃_MAP_sims))), axis=0))
+                s̃_MUSE = self.unravel_θ(self.ravel_θ(s̃_MAP_dat) - np.mean(np.stack(list(map(self.ravel_θ, s̃_MAP_sims))), axis=0))
                 s̃_prior, H̃_prior = self.gradθ_and_hessθ_logPrior(θ̃, transformed_θ=True)
-                s̃_post = unravel(ravel(s̃_MUSE) + ravel(s̃_prior))
+                s̃_post = self.unravel_θ(self.ravel_θ(s̃_MUSE) + self.ravel_θ(s̃_prior))
 
-                H̃_inv_like_sims = np.diag(-1 / np.var(np.stack(list(map(ravel, s̃_MAP_sims))), axis=0))
-                H̃_inv_post = np.linalg.pinv(np.linalg.pinv(H̃_inv_like_sims) + ravel(H̃_prior).reshape(Nθ,Nθ))
+                H̃_inv_like_sims = np.diag(-1 / np.var(np.stack(list(map(self.ravel_θ, s̃_MAP_sims))), axis=0))
+                H̃_inv_post = np.linalg.pinv(np.linalg.pinv(H̃_inv_like_sims) + self.ravel_θ(H̃_prior).reshape(Nθ,Nθ))
                 
                 t = datetime.now() - t0
 
@@ -274,7 +300,7 @@ class MuseProblem():
                     "MAP_history_sims": MAP_history_sims,
                 })
 
-                θ̃unreg = unravel(ravel(θ̃) - α * (np.inner(H̃_inv_post, ravel(s̃_post))))
+                θ̃unreg = self.unravel_θ(self.ravel_θ(θ̃) - α * (np.inner(H̃_inv_post, self.ravel_θ(s̃_post))))
                 θunreg = self.inv_transform_θ(θ̃unreg)
                 θ̃ = regularize(θ̃unreg)
                 θ = self.inv_transform_θ(θ̃)
@@ -308,7 +334,7 @@ class MuseProblem():
     def get_J(
         self,
         result = None,
-        θ0 = None,
+        θ = None,
         s_MAP_tol = None,
         method = None,
         rng = None,
@@ -322,13 +348,15 @@ class MuseProblem():
             result = MuseResult()
         if rng is None:
             rng = SeedSequence()
-        if θ0 is None:
+        if θ is None:
             if result.θ is None:
                 raise Exception("θ0 or result.θ must be given.")
             else:
-                θ0 = result.θ
+                θ = result.θ
 
-        ravel, unravel = self._ravel_unravel(θ0)
+        if result.ravel is None:
+            (result.ravel, result.unravel) = self.ravel_θ, self.unravel_θ
+        
         nsims_remaining = nsims - len(result.s_MAP_sims)
 
         if nsims_remaining > 0:
@@ -336,9 +364,11 @@ class MuseProblem():
             pbar = tqdm(total=nsims_remaining, desc="get_J") if progress else None
             t0 = datetime.now()
 
-            def get_s_MAP(x_z):
+            def get_s_MAP(rng):
                 try:
-                    return self.gradθ_logLike_at_zMAP(*x_z, θ0, method=method, θ_tol=s_MAP_tol).s
+                    (x, z) = self.sample_x_z(rng, θ)
+                    z_MAP_guess = self.z_MAP_guess_from_truth(x, z, θ)
+                    return self.gradθ_logLike_at_zMAP(x, z_MAP_guess, θ, method=method, θ_tol=s_MAP_tol).s
                 except Exception:
                     if skip_errors:
                         return None
@@ -348,12 +378,12 @@ class MuseProblem():
                     if progress: 
                         pbar.update()
 
-            sims = [self.sample_x_z(_rng, θ0) for _rng in self._split_rng(rng, nsims_remaining)]
-            result.s_MAP_sims.extend(s for s in pmap(get_s_MAP, sims) if s is not None)
+            rngs = self._split_rng(rng, nsims_remaining)
+            result.s_MAP_sims.extend(s for s in pmap(get_s_MAP, rngs) if s is not None)
 
             result.time += datetime.now() - t0
 
-        result.J = np.atleast_2d(np.cov(np.stack(list(map(ravel, result.s_MAP_sims))), rowvar=False))
+        result.J = np.atleast_2d(np.cov(np.stack(list(map(self.ravel_θ, result.s_MAP_sims))), rowvar=False))
         result.finalize(self)
         return result
 
@@ -361,7 +391,7 @@ class MuseProblem():
     def get_H(
         self,
         result = None,
-        θ0 = None,
+        θ = None,
         step = None,
         method = None,
         s_MAP_tol = None,
@@ -378,25 +408,27 @@ class MuseProblem():
             result = MuseResult()
         if rng is None:
             rng = SeedSequence()
-        if θ0 is None:
+        if θ is None:
             if result.θ is None:
-                raise Exception("θ0 or result.θ must be given.")
+                raise Exception("θ or result.θ must be given.")
             else:
-                θ0 = result.θ
+                θ = result.θ
+        θfid = θ
 
+        if result.ravel is None:
+            (result.ravel, result.unravel) = self.ravel_θ, self.unravel_θ
 
         nsims_remaining = nsims - len(result.Hs)
 
         if nsims_remaining > 0:
 
-            ravel, unravel = self._ravel_unravel(θ0)
-            Nθ = len(ravel(θ0))
+            Nθ = len(self.ravel_θ(θ))
 
             # default to finite difference step size of 0.1σ with σ roughly
             # estimated from s_MAP_sims sims, if we have them
             if step is None:
                 if len(result.s_MAP_sims) > 0:
-                    step = 0.1 / np.std(np.stack(list(map(ravel, result.s_MAP_sims))), axis=0)
+                    step = 0.1 / np.std(np.stack(list(map(self.ravel_θ, result.s_MAP_sims))), axis=0)
                 else:
                     step = 1e-5
 
@@ -405,35 +437,33 @@ class MuseProblem():
 
             # finite difference Jacobian
             # pmap_sims, pmap_jac = (pmap_over == :jac || (pmap_over == :auto && length(θ₀) > nsims_remaining)) ? (_map, pmap) : (pmap, _map)
-            def get_H(args):
+            def get_H(rng):
 
-                (x, z), rng = args
                 # for each sim, do one fit at fiducial which we'll
                 # reuse as a starting point when fudging θ by +/-ϵ 
-                z_guess = self.gradθ_logLike_at_zMAP(x, z, θ0, method=method, θ_tol=s_MAP_tol).z
+                (x, z) = self.sample_x_z(rng, θfid)
+                z_MAP_guess = self.z_MAP_guess_from_truth(x, z, θfid)
+                z_MAP_guess_fid = self.gradθ_logLike_at_zMAP(x, z_MAP_guess, θfid, method=method, θ_tol=s_MAP_tol).z
                 if progress: pbar.update()
 
                 def get_s_MAP(θvec):
-                    θ = unravel(θvec)
+                    θ = self.unravel_θ(θvec)
                     (x, _) = self.sample_x_z(copy(rng), θ)
-                    return ravel(self.gradθ_logLike_at_zMAP(x, z_guess, θ0, method=method, θ_tol=s_MAP_tol).s)
+                    return self.ravel_θ(self.gradθ_logLike_at_zMAP(x, z_MAP_guess_fid, θfid, method=method, θ_tol=s_MAP_tol).s)
 
                 try:
-                    return pjacobian(get_s_MAP, ravel(θ0), step, pbar=pbar)
+                    return pjacobian(get_s_MAP, self.ravel_θ(θfid), step, pbar=pbar)
                 except Exception:
                     if skip_errors:
                         return None
                     else:
                         raise
 
-            # generate simulations
-            sims = ((self.sample_x_z(_rng, θ0), _rng) for _rng in self._split_rng(rng, nsims_remaining))
-            result.Hs.extend(H for H in map(get_H, sims) if H is not None)
+            rngs = self._split_rng(rng, nsims_remaining)
+            result.Hs.extend(H for H in map(get_H, rngs) if H is not None)
             
             result.time += datetime.now() - t0
 
         result.H = np.mean(np.array(result.Hs), axis=0)
         result.finalize(self)
         return result
-
-
