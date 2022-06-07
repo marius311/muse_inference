@@ -286,6 +286,7 @@ class MuseProblem():
                 H̃_inv_post = np.linalg.pinv(np.linalg.pinv(H̃_inv_like_sims) + self.ravel_θ(H̃_prior).reshape(Nθ,Nθ))
                 
                 t = datetime.now() - t0
+                result.time += t
 
                 result.history.append({
                     "t":t, "θ̃":θ̃, "θ̃unreg":θ̃unreg, "θ":θ, "θunreg":θunreg,
@@ -312,7 +313,6 @@ class MuseProblem():
 
         result.θ = θunreg
         result.s_MAP_sims = result.history[-1]["s_MAP_sims"]
-        result.time = sum((h["t"] for h in result.history), start=result.time)
 
         if get_covariance:
             self.get_J(
