@@ -424,8 +424,8 @@ Populating the interactive namespace from numpy and matplotlib
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-MUSE: 100%|██████████| 5050/5050 [00:08&lt;00:00, 588.72it/s]
-get_H: 100%|██████████| 70/70 [00:00&lt;00:00, 93.45it/s]
+MUSE: 100%|██████████| 5050/5050 [00:09&lt;00:00, 539.79it/s]
+get_H: 100%|██████████| 70/70 [00:00&lt;00:00, 70.64it/s]
 </pre></div></div>
 </div>
 <p>When there are multiple parameters, the starting guess should be specified as as a dictionary, as above.</p>
@@ -444,7 +444,7 @@ get_H: 100%|██████████| 70/70 [00:00&lt;00:00, 93.45it/s]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-{&#39;μ&#39;: array([0.39753593, 0.43684889]), &#39;σ&#39;: array(0.90340398)}
+{&#39;μ&#39;: array([0.40205548, 0.38608271]), &#39;σ&#39;: array(0.94459269)}
 </pre></div></div>
 </div>
 <p>and the covariance as matrix, with parameters concatenated in the order they appear in the model (or in the order specified in <code class="docutils literal notranslate"><span class="pre">params</span></code>, if that was used):</p>
@@ -462,9 +462,9 @@ get_H: 100%|██████████| 70/70 [00:00&lt;00:00, 93.45it/s]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-array([[ 2.12552465e-02,  5.31172549e-04, -3.29325092e-05],
-       [ 5.31172549e-04,  3.38848825e-02, -8.03978415e-03],
-       [-3.29325092e-05, -8.03978415e-03,  9.27782381e-03]])
+array([[ 0.02853583,  0.00510861, -0.00817584],
+       [ 0.00510861,  0.02903142, -0.00493029],
+       [-0.00817584, -0.00493029,  0.0140522 ]])
 </pre></div></div>
 </div>
 <p>The <code class="docutils literal notranslate"><span class="pre">result.ravel</span></code> and <code class="docutils literal notranslate"><span class="pre">result.unravel</span></code> functions can be used to convert between dictionary and vector representations of the parameters. For example, to compute the standard deviation for each parameter (the square root of the diagonal of the covariance):</p>
@@ -482,7 +482,7 @@ array([[ 2.12552465e-02,  5.31172549e-04, -3.29325092e-05],
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-{&#39;μ&#39;: array([0.14579179, 0.18407847]), &#39;σ&#39;: array(0.09632146)}
+{&#39;μ&#39;: array([0.16892551, 0.1703861 ]), &#39;σ&#39;: array(0.11854197)}
 </pre></div></div>
 </div>
 <p>or to convert the mean parameters to a vector:</p>
@@ -500,7 +500,7 @@ array([[ 2.12552465e-02,  5.31172549e-04, -3.29325092e-05],
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-array([0.39753593, 0.43684889, 0.90340398])
+array([0.40205548, 0.38608271, 0.94459269])
 </pre></div></div>
 </div>
 </section>
@@ -580,8 +580,8 @@ WARNING:absl:No GPU/TPU found, falling back to CPU. (Set TF_CPP_MIN_LOG_LEVEL=0 
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-MUSE: 100%|██████████| 5050/5050 [00:00&lt;00:00, 8361.35it/s]
-get_H: 100%|██████████| 30/30 [00:00&lt;00:00, 384.61it/s]
+MUSE: 100%|██████████| 5050/5050 [00:00&lt;00:00, 7532.64it/s]
+get_H: 100%|██████████| 30/30 [00:00&lt;00:00, 347.15it/s]
 </pre></div></div>
 </div>
 <p>Note that the solution here is obtained around 10X faster that the PyMC version of this in the <a class="reference external" href="example.html">Example</a> page (the cloud machines which build these docs don’t always achieve the 10X, but you see this if you run these examples locally). The Jax interface has much lower overhead, which will be noticeable for very fast posteriors like the one above.</p>
@@ -654,8 +654,8 @@ get_H: 100%|██████████| 30/30 [00:00&lt;00:00, 384.61it/s]
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-MUSE: 100%|██████████| 5050/5050 [00:09&lt;00:00, 521.89it/s]
-get_H: 100%|██████████| 50/50 [00:00&lt;00:00, 190.24it/s]
+MUSE: 100%|██████████| 5050/5050 [00:10&lt;00:00, 466.69it/s]
+get_H: 100%|██████████| 50/50 [00:00&lt;00:00, 157.05it/s]
 </pre></div></div>
 </div>
 <p>The result is returned as a pytree:</p>
