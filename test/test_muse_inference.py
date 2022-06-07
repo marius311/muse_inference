@@ -194,8 +194,8 @@ def test_ravel_jax():
 
 def test_scalar_pymc():
 
-    def gen_funnel(x=None, θ=None, rng_seeder=None):
-        with pm.Model(rng_seeder=rng_seeder) as funnel:
+    def gen_funnel(x=None, θ=None):
+        with pm.Model() as funnel:
             θ = pm.Normal("θ", mu=0, sigma=3) if θ is None else θ
             z = pm.Normal("z", mu=0, sigma=np.exp(θ/2), size=512)
             x = pm.Normal("x", mu=z, sigma=1, observed=x)
@@ -204,8 +204,8 @@ def test_scalar_pymc():
     θ_true = 1.
     θ_start = 0.
 
-    rng = np.random.RandomState(0)
-    x_obs = pm.sample_prior_predictive(1, model=gen_funnel(θ=θ_true, rng_seeder=rng)).prior.x[0,0]
+    with gen_funnel(θ=θ_true):
+        x_obs = pm.sample_prior_predictive(1, random_seed=0).prior.x[0,0]
     funnel = gen_funnel(x_obs)
     prob = PyMCMuseProblem(funnel)
 
@@ -219,8 +219,8 @@ def test_scalar_pymc():
 
 def test_ravel_pymc():
 
-    def gen_funnel(x1=None, x2=None, θ1=None, θ2=None, rng_seeder=None):
-        with pm.Model(rng_seeder=rng_seeder) as funnel:
+    def gen_funnel(x1=None, x2=None, θ1=None, θ2=None):
+        with pm.Model() as funnel:
             θ1 = pm.Normal("θ1", mu=0, sigma=3) if θ1 is None else θ1
             θ2 = pm.Normal("θ2", mu=0, sigma=3) if θ2 is None else θ2
             z1 = pm.Normal("z1", mu=0, sigma=np.exp(θ1/2), size=256)
@@ -232,8 +232,8 @@ def test_ravel_pymc():
     θ_true  = dict(θ1=-1, θ2=2)
     θ_start = dict(θ1=0,  θ2=0)
 
-    rng = np.random.RandomState(0)
-    truth = pm.sample_prior_predictive(1, model=gen_funnel(rng_seeder=rng, **θ_true)).prior
+    with gen_funnel(rng_seeder=rng, **θ_true):
+        truth = pm.sample_prior_predictive(1, random_seed=0).prior
     funnel = gen_funnel(x1=truth.x1[0,0], x2=truth.x2[0,0])
     prob = PyMCMuseProblem(funnel)
 

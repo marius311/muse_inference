@@ -9,7 +9,7 @@ docs/*.ipynb
 build
 *.prof
 profile
-scratch
+scratch*
 Untitled*
 todo.md
 bin
