@@ -46,7 +46,7 @@ Then define the problem,
 
 ```python
 def gen_funnel(x=None, σ=None, μ=None, rng=None):
-    with pm.Model(rng_seeder=rng) as model:
+    with pm.Model() as model:
         μ = pm.Beta("μ", 2, 5, size=2) if μ is None else μ
         σ = pm.Normal("σ", 0, 3) if σ is None else σ
         z = pm.LogNormal("z", μ, np.exp(σ/2), size=(100, 2))
@@ -58,7 +58,8 @@ generate the model and some data, given some chosen true values of parameters,
 
 ```python
 θ_true = dict(μ=[0.3, 0.7], σ=1)
-x_obs = pm.sample_prior_predictive(1, gen_funnel(rng=RandomState(0), **θ_true)).prior.x[0,0]
+with gen_funnel(rng=RandomState(0), **θ_true):
+    x_obs = pm.sample_prior_predictive(1, random_seed=0).prior.x[0,0]
 model = gen_funnel(x=x_obs)
 prob = PyMCMuseProblem(model)
 ```

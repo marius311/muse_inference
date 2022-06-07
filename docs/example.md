@@ -55,7 +55,7 @@ for $i=1..10000$. This problem can be described by the following PyMC model:
 
 ```python
 def gen_funnel(x=None, θ=None, rng=None):
-    with pm.Model(rng_seeder=rng) as funnel:
+    with pm.Model() as funnel:
         θ = pm.Normal("θ", mu=0, sigma=3) if θ is None else θ
         z = pm.Normal("z", mu=0, sigma=np.exp(θ/2), size=10000)
         x = pm.Normal("x", mu=z, sigma=1, observed=x)
@@ -66,7 +66,8 @@ Next, lets choose a true value of $\theta=0$ and generate some simulated data, $
 
 ```python
 rng = np.random.RandomState(0)
-x_obs = pm.sample_prior_predictive(1, model=gen_funnel(θ=0, rng=rng)).prior.x[0,0]
+with gen_funnel(θ=0):
+    x_obs = pm.sample_prior_predictive(1, random_seed=0).prior.x[0,0]
 model = gen_funnel(x=x_obs, rng=rng)
 ```
 

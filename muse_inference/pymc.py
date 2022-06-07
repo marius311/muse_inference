@@ -13,6 +13,7 @@ import scipy.stats as st
 from scipy.optimize import minimize
 
 import pymc as pm
+from pymc.aesaraf import find_rng_nodes, reseed_rngs
 from pymc.distributions import joint_logpt
 
 from .muse_inference import MuseProblem
@@ -51,6 +52,9 @@ class PyMCMuseProblem(MuseProblem):
         x_vals = [rvs_to_values[v] for v in x_RVs]
         θ_vals = [rvs_to_values[v] for v in θ_RVs]
         z_vals = [rvs_to_values[v] for v in z_RVs]
+
+        # for seeding sample_x_z
+        self.rng_nodes = find_rng_nodes(x_RVs + z_RVs)
 
         # create ravel / unravel functions for parameter dict
         θ_dict = dict(zip([v.name for v in θ_RVs], aesara.function([], θ_RVs)()))
@@ -144,13 +148,9 @@ class PyMCMuseProblem(MuseProblem):
         logLike, gradz_logLike, gradθ_logLike = _logp_dzθlogp(*x, z_vec, self.ravel_θ(θ_dict))
         return logLike, gradz_logLike, self._unravel_θ(gradθ_logLike)
 
-    def sample_x_z(self, rng, θdict):
-        self.model.rng_seeder = rng
-        for rng in self.model.rng_seq:
-            state = self.model.next_rng().get_value(borrow=True).get_state()
-            self.model.rng_seq.pop() # the call to next_rng undesiredly (for this) added it to rng_seq, so remove it
-            rng.get_value(borrow=True).set_state(state)
-        *x, z = self._sample_x_z(self.ravel_θ(θdict))
+    def sample_x_z(self, rng: int, θ_dict):
+        reseed_rngs(self.rng_nodes, rng)
+        *x, z = self._sample_x_z(self.ravel_θ(θ_dict))
         return (x, z)
 
     def gradθ_hessθ_logPrior(self, θ_dict, transformed_θ):
@@ -173,7 +173,7 @@ class PyMCMuseProblem(MuseProblem):
         return tensors_raveled, tensors_unraveled
 
     def _split_rng(self, rng: np.random.SeedSequence, N):
-        return [np.random.RandomState(s) for s in copy(rng).generate_state(N)]
+        return copy(rng).generate_state(N)
 
 
 def unconditioned_logpt(model, jacobian: bool = True):

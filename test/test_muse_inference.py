@@ -232,7 +232,7 @@ def test_ravel_pymc():
     θ_true  = dict(θ1=-1, θ2=2)
     θ_start = dict(θ1=0,  θ2=0)
 
-    with gen_funnel(rng_seeder=rng, **θ_true):
+    with gen_funnel(**θ_true):
         truth = pm.sample_prior_predictive(1, random_seed=0).prior
     funnel = gen_funnel(x1=truth.x1[0,0], x2=truth.x2[0,0])
     prob = PyMCMuseProblem(funnel)
