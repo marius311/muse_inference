@@ -69,6 +69,9 @@ class JaxMuseProblem(MuseProblem):
     def _split_rng(self, key, N):
         return jax.random.split(key, N)
 
+    def _default_rng(self):
+        return jax.random.PRNGKey(SeedSequence().generate_state(1)[0])
+
 
 class JittableJaxMuseProblem(JaxMuseProblem):
 

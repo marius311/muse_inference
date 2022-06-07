@@ -85,8 +85,11 @@ class MuseProblem():
     def val_gradz_gradθ_logLike(self, x, z, θ, transformed_θ=None):
         raise NotImplementedError()
 
-    def _split_rng(self, rng: SeedSequence, N):
+    def _split_rng(self, rng, N):
         return [default_rng(s) for s in copy(rng).spawn(N)]
+
+    def _default_rng(self):
+        return SeedSequence()
 
     def z_MAP_and_score(
         self, 
@@ -223,7 +226,10 @@ class MuseProblem():
         if result is None:
             result = MuseResult()
         if rng is None:
-            rng = SeedSequence()
+            if result.rng is None:
+                rng = self._default_rng()
+            else:
+                rng = result.rng
 
         θ_tol = θ_tol_initial
 
@@ -257,7 +263,7 @@ class MuseProblem():
 
                 if i > 1:
                     xs = [self.x] + [self.sample_x_z(_rng, θ)[0] for _rng in self._split_rng(rng,nsims)]
-                    θ_tol = np.sqrt(np.diag(-H̃_inv_post)) * θ_rtol
+                    θ_tol = np.sqrt(-np.diag(result.history[-1]["H̃_inv_post"])) * θ_rtol
 
                 if i > 2:
                     Δθ̃ = self.ravel_θ(result.history[-1]["θ̃"]) - self.ravel_θ(result.history[-2]["θ̃"])
@@ -348,7 +354,10 @@ class MuseProblem():
         if result is None:
             result = MuseResult()
         if rng is None:
-            rng = SeedSequence()
+            if result.rng is None:
+                rng = self._default_rng()
+            else:
+                rng = result.rng
         if θ is None:
             if result.θ is None:
                 raise Exception("θ0 or result.θ must be given.")
@@ -409,7 +418,10 @@ class MuseProblem():
         if result is None:
             result = MuseResult()
         if rng is None:
-            rng = SeedSequence()
+            if result.rng is None:
+                rng = self._default_rng()
+            else:
+                rng = result.rng
         if θ is None:
             if result.θ is None:
                 raise Exception("θ or result.θ must be given.")
