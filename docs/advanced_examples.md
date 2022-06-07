@@ -12,7 +12,7 @@ jupyter:
     name: python3
 ---
 
-# User API
+# Advanced Examples
 
 ```python nbsphinx="hidden" tags=[]
 %config InlineBackend.print_figure_kwargs = {'bbox_inches': 'tight', 'dpi': 110}

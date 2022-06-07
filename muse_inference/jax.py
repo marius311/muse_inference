@@ -21,11 +21,11 @@ class JaxMuseProblem(MuseProblem):
     def logPrior(self, θ):
         raise NotImplementedError()
 
-    def logLike_and_gradzθ_logLike(self, x, z, θ, transformed_θ=None):
+    def val_gradz_gradθ_logLike(self, x, z, θ, transformed_θ=None):
         logLike, (gradz_logLike, gradθ_logLike) = jax.value_and_grad(self.logLike, argnums=(1, 2))(x, z, θ)
         return (logLike, gradz_logLike, gradθ_logLike)
 
-    def gradθ_logLike_at_zMAP(
+    def z_MAP_and_score(
         self, 
         x, 
         z_guess, 
@@ -52,11 +52,11 @@ class JaxMuseProblem(MuseProblem):
 
         zMAP = unravel(soln.x)
 
-        gradθ = self.logLike_and_gradzθ_logLike(x, zMAP, θ)[2]
+        gradθ = self.val_gradz_gradθ_logLike(x, zMAP, θ)[2]
 
         return ScoreAndMAP(gradθ, gradθ, zMAP, soln)
 
-    def gradθ_and_hessθ_logPrior(self, θ, transformed_θ=None):
+    def gradθ_hessθ_logPrior(self, θ, transformed_θ=None):
         g = jax.grad(self.logPrior)(θ)
         H = jax.hessian(self.logPrior)(θ)
         return (g, H)
@@ -73,15 +73,15 @@ class JaxMuseProblem(MuseProblem):
 class JittableJaxMuseProblem(JaxMuseProblem):
 
     @partial(jax.jit, static_argnames=("self",))
-    def logLike_and_gradzθ_logLike(self, x, z, θ, transformed_θ=None):
-        return super().logLike_and_gradzθ_logLike(x, z, θ, transformed_θ=transformed_θ)
+    def val_gradz_gradθ_logLike(self, x, z, θ, transformed_θ=None):
+        return super().val_gradz_gradθ_logLike(x, z, θ, transformed_θ=transformed_θ)
 
     @partial(jax.jit, static_argnames=("self",))
-    def gradθ_and_hessθ_logPrior(self, θ, transformed_θ=None):
-        return super().gradθ_and_hessθ_logPrior(θ, transformed_θ=transformed_θ)
+    def gradθ_hessθ_logPrior(self, θ, transformed_θ=None):
+        return super().gradθ_hessθ_logPrior(θ, transformed_θ=transformed_θ)
 
     @partial(jax.jit, static_argnames=("self","method"))
-    def gradθ_logLike_at_zMAP(
+    def z_MAP_and_score(
         self, 
         x, 
         z_guess, 
@@ -91,4 +91,4 @@ class JittableJaxMuseProblem(JaxMuseProblem):
         z_tol = None,
         θ_tol = None,
     ):
-        return super().gradθ_logLike_at_zMAP(x, z_guess, θ, method, options, z_tol, θ_tol)
+        return super().z_MAP_and_score(x, z_guess, θ, method, options, z_tol, θ_tol)

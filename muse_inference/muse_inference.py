@@ -38,7 +38,7 @@ class MuseResult():
 
             Nθ = len(self.ravel(self.θ))
 
-            H_prior = self.ravel(prob.gradθ_and_hessθ_logPrior(self.θ, transformed_θ=False)[1]).reshape(Nθ,Nθ)
+            H_prior = self.ravel(prob.gradθ_hessθ_logPrior(self.θ, transformed_θ=False)[1]).reshape(Nθ,Nθ)
             self.Σ_inv = self.H.T @ np.linalg.inv(self.J) @ self.H - H_prior
             self.Σ = np.linalg.inv(self.Σ_inv)
             if self.θ is not None:
@@ -79,16 +79,16 @@ class MuseProblem():
     def z_MAP_guess_from_truth(self, x, z, θ):
         return self.unravel_z(0 * self.ravel_z(z))
 
-    def gradθ_and_hessθ_logPrior(self, θ, transformed_θ=False):
+    def gradθ_hessθ_logPrior(self, θ, transformed_θ=None):
         return (0,0)
 
-    def logLike_and_gradzθ_logLike(self, x, z, θ):
+    def val_gradz_gradθ_logLike(self, x, z, θ, transformed_θ=None):
         raise NotImplementedError()
 
     def _split_rng(self, rng: SeedSequence, N):
         return [default_rng(s) for s in copy(rng).spawn(N)]
 
-    def gradθ_logLike_at_zMAP(
+    def z_MAP_and_score(
         self, 
         x, 
         z_guess, 
@@ -123,7 +123,7 @@ class MuseProblem():
             if terminate:
                 return (0, 0*z_guess)
             else:
-                logLike, gradz_logLike, last_gradθ_logLike = self.logLike_and_gradzθ_logLike(x, self.unravel_z(z_vec), θ̃, transformed_θ=True)
+                logLike, gradz_logLike, last_gradθ_logLike = self.val_gradz_gradθ_logLike(x, self.unravel_z(z_vec), θ̃, transformed_θ=True)
                 return (-logLike, -self.ravel_z(gradz_logLike))
         
         # check if θ-gradient is converged
@@ -145,8 +145,8 @@ class MuseProblem():
         soln.θ_tol = θ_tol
 
         z = self.unravel_z(soln.x)
-        s̃ = self.logLike_and_gradzθ_logLike(x, z, θ̃, transformed_θ=True)[2]
-        s = self.logLike_and_gradzθ_logLike(x, z, θ, transformed_θ=False)[2] if self.has_θ_transform() else s̃
+        s̃ = self.val_gradz_gradθ_logLike(x, z, θ̃, transformed_θ=True)[2]
+        s = self.val_gradz_gradθ_logLike(x, z, θ, transformed_θ=False)[2] if self.has_θ_transform() else s̃
         history = soln
         return ScoreAndMAP(s, s̃, z, history)
 
@@ -203,7 +203,7 @@ class MuseProblem():
         maxsteps = 50,
         θ_rtol = 1e-2,
         z_tol = None,
-        s_MAP_tol_initial = None,
+        θ_tol_initial = None,
         method = None,
         nsims = 100,
         α = 0.7,
@@ -225,7 +225,7 @@ class MuseProblem():
         if rng is None:
             rng = SeedSequence()
 
-        s_MAP_tol = s_MAP_tol_initial
+        θ_tol = θ_tol_initial
 
         if result.ravel is None:
             (result.ravel, result.unravel) = self.ravel_θ, self.unravel_θ
@@ -257,7 +257,7 @@ class MuseProblem():
 
                 if i > 1:
                     xs = [self.x] + [self.sample_x_z(_rng, θ)[0] for _rng in self._split_rng(rng,nsims)]
-                    s_MAP_tol = np.sqrt(np.diag(-H̃_inv_post)) * θ_rtol
+                    θ_tol = np.sqrt(np.diag(-H̃_inv_post)) * θ_rtol
 
                 if i > 2:
                     Δθ̃ = self.ravel_θ(result.history[-1]["θ̃"]) - self.ravel_θ(result.history[-2]["θ̃"])
@@ -267,7 +267,7 @@ class MuseProblem():
                 # MUSE gradient
                 def get_MAPs(x_z):
                     x, ẑ_prev = x_z
-                    result = self.gradθ_logLike_at_zMAP(x, ẑ_prev, θ, method=method, z_tol=z_tol, θ_tol=s_MAP_tol)
+                    result = self.z_MAP_and_score(x, ẑ_prev, θ, method=method, z_tol=z_tol, θ_tol=θ_tol)
                     if progress: pbar.update()
                     return result
 
@@ -279,7 +279,7 @@ class MuseProblem():
                 s_MAP_dat, *s_MAP_sims = [MAP.s for MAP in MAPs]
                 s̃_MAP_dat, *s̃_MAP_sims = [MAP.s̃ for MAP in MAPs]
                 s̃_MUSE = self.unravel_θ(self.ravel_θ(s̃_MAP_dat) - np.mean(np.stack(list(map(self.ravel_θ, s̃_MAP_sims))), axis=0))
-                s̃_prior, H̃_prior = self.gradθ_and_hessθ_logPrior(θ̃, transformed_θ=True)
+                s̃_prior, H̃_prior = self.gradθ_hessθ_logPrior(θ̃, transformed_θ=True)
                 s̃_post = self.unravel_θ(self.ravel_θ(s̃_MUSE) + self.ravel_θ(s̃_prior))
 
                 H̃_inv_like_sims = np.diag(-1 / np.var(np.stack(list(map(self.ravel_θ, s̃_MAP_sims))), axis=0))
@@ -295,7 +295,7 @@ class MuseProblem():
                     "s̃_prior": s̃_prior, "s̃_post": s̃_post, 
                     "H̃_inv_post": H̃_inv_post, "H̃_prior": H̃_prior, 
                     "H̃_inv_like_sims": H̃_inv_like_sims,
-                    "s_MAP_tol": s_MAP_tol,
+                    "θ_tol": θ_tol,
                     "MAP_history_dat": MAP_history_dat, 
                     "MAP_history_sims": MAP_history_sims,
                 })
@@ -317,13 +317,13 @@ class MuseProblem():
         if get_covariance:
             self.get_J(
                 result=result, nsims=nsims, 
-                rng=rng, s_MAP_tol=s_MAP_tol, 
+                rng=rng, θ_tol=θ_tol, z_tol=z_tol,
                 pmap=pmap, progress=progress,
                 method=method,
             )
             self.get_H(
                 result=result, nsims=max(1,nsims//10), 
-                rng=rng, s_MAP_tol=s_MAP_tol, 
+                rng=rng, θ_tol=θ_tol, z_tol=z_tol,
                 pmap=pmap, progress=progress,
                 method=method,
             )
@@ -335,7 +335,8 @@ class MuseProblem():
         self,
         result = None,
         θ = None,
-        s_MAP_tol = None,
+        θ_tol = None,
+        z_tol = None,
         method = None,
         rng = None,
         nsims = 100, 
@@ -368,7 +369,7 @@ class MuseProblem():
                 try:
                     (x, z) = self.sample_x_z(rng, θ)
                     z_MAP_guess = self.z_MAP_guess_from_truth(x, z, θ)
-                    return self.gradθ_logLike_at_zMAP(x, z_MAP_guess, θ, method=method, θ_tol=s_MAP_tol).s
+                    return self.z_MAP_and_score(x, z_MAP_guess, θ, method=method, θ_tol=θ_tol, z_tol=z_tol).s
                 except Exception:
                     if skip_errors:
                         return None
@@ -394,7 +395,8 @@ class MuseProblem():
         θ = None,
         step = None,
         method = None,
-        s_MAP_tol = None,
+        θ_tol = None,
+        z_tol = None,
         rng = None,
         nsims = 10, 
         pmap = map,
@@ -443,13 +445,13 @@ class MuseProblem():
                 # reuse as a starting point when fudging θ by +/-ϵ 
                 (x, z) = self.sample_x_z(rng, θfid)
                 z_MAP_guess = self.z_MAP_guess_from_truth(x, z, θfid)
-                z_MAP_guess_fid = self.gradθ_logLike_at_zMAP(x, z_MAP_guess, θfid, method=method, θ_tol=s_MAP_tol).z
+                z_MAP_guess_fid = self.z_MAP_and_score(x, z_MAP_guess, θfid, method=method, θ_tol=θ_tol, z_tol=z_tol).z
                 if progress: pbar.update()
 
                 def get_s_MAP(θvec):
                     θ = self.unravel_θ(θvec)
                     (x, _) = self.sample_x_z(copy(rng), θ)
-                    return self.ravel_θ(self.gradθ_logLike_at_zMAP(x, z_MAP_guess_fid, θfid, method=method, θ_tol=s_MAP_tol).s)
+                    return self.ravel_θ(self.z_MAP_and_score(x, z_MAP_guess_fid, θfid, method=method, θ_tol=θ_tol, z_tol=z_tol).s)
 
                 try:
                     return pjacobian(get_s_MAP, self.ravel_θ(θfid), step, pbar=pbar)

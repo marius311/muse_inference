@@ -31,13 +31,13 @@ def test_scalar_numpy(pmap):
             x = z + rng.normal(size=self.N)
             return (x, z)
         
-        def logLike_and_gradzθ_logLike(self, x, z, θ, transformed_θ=None):
+        def val_gradz_gradθ_logLike(self, x, z, θ, transformed_θ=None):
             logLike = -(np.sum((x - z)**2) + np.sum(z**2) / np.exp(θ) + 512*θ) / 2
             gradz_logLike = x - z * (1 + np.exp(-θ))
             gradθ_logLike = np.sum(z**2)/(2*np.exp(θ)) - self.N/2
             return (logLike, gradz_logLike, gradθ_logLike)
         
-        def gradθ_and_hessθ_logPrior(self, θ, transformed_θ=None):
+        def gradθ_hessθ_logPrior(self, θ, transformed_θ=None):
             return (-θ/(3**2), -1/3**2)
 
     θ_true = 1.
@@ -73,7 +73,7 @@ def test_ravel_numpy(pmap):
             x2 = z2 + rng.normal(size=self.N)        
             return ((x1,x2), (z1,z2))
         
-        def logLike_and_gradzθ_logLike(self, x, z, θ, transformed_θ=None):
+        def val_gradz_gradθ_logLike(self, x, z, θ, transformed_θ=None):
             (θ1, θ2) = θ
             (x1, x2) = x
             (z1, z2) = z
@@ -82,7 +82,7 @@ def test_ravel_numpy(pmap):
             gradθ_logLike = (np.sum(z1**2)/(2*np.exp(θ1)) - self.N/2, np.sum(z2**2)/(2*np.exp(θ2)) - self.N/2)
             return (logLike, gradz_logLike, gradθ_logLike)
         
-        def gradθ_and_hessθ_logPrior(self, θ, transformed_θ=None):
+        def gradθ_hessθ_logPrior(self, θ, transformed_θ=None):
             (θ1, θ2) = θ
             g = (-θ1/(3**2), -θ2/(3**2))
             H = (

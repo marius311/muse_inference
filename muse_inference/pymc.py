@@ -139,7 +139,7 @@ class PyMCMuseProblem(MuseProblem):
     def has_θ_transform(self):
         return self._has_θ_transform
 
-    def logLike_and_gradzθ_logLike(self, x, z_vec, θ_dict, transformed_θ):
+    def val_gradz_gradθ_logLike(self, x, z_vec, θ_dict, transformed_θ):
         _logp_dzθlogp = self._logp_dzθlogp_transθ if transformed_θ else self._logp_dzθlogp_untransθ
         logLike, gradz_logLike, gradθ_logLike = _logp_dzθlogp(*x, z_vec, self.ravel_θ(θ_dict))
         return logLike, gradz_logLike, self._unravel_θ(gradθ_logLike)
@@ -153,7 +153,7 @@ class PyMCMuseProblem(MuseProblem):
         *x, z = self._sample_x_z(self.ravel_θ(θdict))
         return (x, z)
 
-    def gradθ_and_hessθ_logPrior(self, θ_dict, transformed_θ):
+    def gradθ_hessθ_logPrior(self, θ_dict, transformed_θ):
         _dlogprior_d2logprior = self._dlogprior_d2logprior_transθ if transformed_θ else self._dlogprior_d2logprior_untransθ
         return _dlogprior_d2logprior(self.ravel_θ(θ_dict))
 
