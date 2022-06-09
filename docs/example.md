@@ -6,7 +6,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.13.8
+      jupytext_version: 1.13.6
   kernelspec:
     display_name: 'Python 3.9.7 (''.venv'': poetry)'
     language: python
@@ -54,7 +54,7 @@ $$
 for $i=1..10000$. This problem can be described by the following PyMC model:
 
 ```python
-def gen_funnel(x=None, θ=None, rng=None):
+def gen_funnel(x=None, θ=None):
     with pm.Model() as funnel:
         θ = pm.Normal("θ", mu=0, sigma=3) if θ is None else θ
         z = pm.Normal("z", mu=0, sigma=np.exp(θ/2), size=10000)
@@ -65,10 +65,9 @@ def gen_funnel(x=None, θ=None, rng=None):
 Next, lets choose a true value of $\theta=0$ and generate some simulated data, $x$, which we'll use as "observations":
 
 ```python
-rng = np.random.RandomState(0)
 with gen_funnel(θ=0):
     x_obs = pm.sample_prior_predictive(1, random_seed=0).prior.x[0,0]
-model = gen_funnel(x=x_obs, rng=rng)
+model = gen_funnel(x=x_obs)
 ```
 
 ```python nbsphinx="hidden" tags=[]
