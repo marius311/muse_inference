@@ -50,6 +50,7 @@ def test_scalar_numpy(pmap):
     result = prob.solve(θ_start=θ_start, rng=np.random.SeedSequence(1), pmap=pmap)
     prob.get_J(result, nsims=len(result.s_MAP_sims)+10, rng=np.random.SeedSequence(2), pmap=pmap)
 
+    assert "±" in repr(result)
     assert isinstance(result.θ, Number)
     assert result.Σ.shape == (1,1)
     assert result.dist.cdf(θ_true) > 0.01
@@ -101,7 +102,7 @@ def test_ravel_numpy(pmap):
     result = prob.solve(θ_start=θ_start, rng=np.random.SeedSequence(1), pmap=pmap)
     prob.get_J(result, nsims=len(result.s_MAP_sims)+10, rng=np.random.SeedSequence(2), pmap=pmap)
 
-
+    assert "±" in repr(result)
     assert isinstance(result.θ, tuple)
     assert result.Σ.shape == (2,2)
     assert result.dist.cdf(result.ravel(θ_true)) > 0.01
@@ -142,6 +143,7 @@ def test_scalar_jax():
     result = prob.solve(θ_start=θ_start, rng=keys[1], method=None, maxsteps=10)
     prob.get_J(result, nsims=len(result.s_MAP_sims)+10, rng=keys[2], method=None)
 
+    assert "±" in repr(result)
     assert result.θ.shape == ()
     assert result.Σ.shape == (1,1)
     assert result.dist.cdf(result.ravel(θ_true)) > 0.01
@@ -187,6 +189,7 @@ def test_ravel_jax():
     result = prob.solve(θ_start=θ_start, rng=keys[1], method=None, maxsteps=10)
     prob.get_J(result, nsims=len(result.s_MAP_sims)+10, rng=keys[2], method=None)
 
+    assert "±" in repr(result)
     assert isinstance(result.θ, dict) and result.θ["θ1"].shape == result.θ["θ2"].shape == ()
     assert result.Σ.shape == (2,2)
     assert result.dist.cdf(result.ravel(θ_true)) > 0.01
@@ -212,6 +215,7 @@ def test_scalar_pymc():
     result = prob.solve(θ_start=θ_start, rng=np.random.SeedSequence(1))
     prob.get_J(result, nsims=len(result.s_MAP_sims)+10, rng=np.random.SeedSequence(2))
 
+    assert "±" in repr(result)
     assert isinstance(result.θ, dict) and result.θ["θ"].shape == ()
     assert result.Σ.shape == (1,1)
     assert result.dist.cdf(θ_true) > 0.01
@@ -240,6 +244,7 @@ def test_ravel_pymc():
     result = prob.solve(θ_start=θ_start, rng=np.random.SeedSequence(1))
     prob.get_J(result, nsims=len(result.s_MAP_sims)+10, rng=np.random.SeedSequence(2))
 
+    assert "±" in repr(result)
     assert isinstance(result.θ, dict) and result.θ["θ1"].shape == result.θ["θ2"].shape == ()
     assert result.Σ.shape == (2,2)
     assert result.dist.cdf(result.ravel(θ_true)) > 0.01

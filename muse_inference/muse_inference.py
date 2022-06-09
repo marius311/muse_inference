@@ -39,13 +39,32 @@ class MuseResult():
             Nθ = len(self.ravel(self.θ))
 
             H_prior = self.ravel(prob.gradθ_hessθ_logPrior(self.θ, transformed_θ=False)[1]).reshape(Nθ,Nθ)
-            self.Σ_inv = self.H.T @ np.linalg.inv(self.J) @ self.H - H_prior
-            self.Σ = np.linalg.inv(self.Σ_inv)
+            self.Σ_inv = self.H.T @ np.linalg.pinv(self.J) @ self.H - H_prior
+            self.Σ = np.linalg.pinv(self.Σ_inv)
             if self.θ is not None:
                 if Nθ == 1:
                     self.dist = sp.stats.norm(self.ravel(self.θ), np.sqrt(self.Σ[0,0]))
                 else:
                     self.dist = sp.stats.multivariate_normal(self.ravel(self.θ), self.Σ)
+
+    def __repr__(self):
+
+        if self.θ is None:
+            return "MuseResult()"
+
+        σ = self.unravel(np.sqrt(np.diag(self.Σ))) if self.Σ is not None else None
+        
+        def _repr(θ, σ):
+            if isinstance(θ, dict):
+                return "{" + ', '.join(f'{k}={_repr(θ[k], σ[k] if σ is not None else None)}' for k in θ.keys()) + "}"
+            elif isinstance(θ, (list, tuple)) or (isinstance(θ, np.ndarray) and θ.shape != ()):
+                return "[" + ', '.join(f'{_repr(θ[i], σ[i] if σ is not None else None)}' for i in range(len(θ))) + "]"
+            elif isinstance(θ, Number) or (hasattr(θ, "shape") and θ.shape == ()):
+                return f"{θ:.3g}" if σ is None else f"{θ:.3g}±{σ:.3g}"
+            else:
+                return repr(θ)
+                
+        return f"MuseResult({_repr(self.θ, σ)})"
 
 
 
