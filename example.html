@@ -390,7 +390,7 @@ x_i &amp;\sim {\rm Normal}(z_i, 1)
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">gen_funnel</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">θ</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">gen_funnel</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">θ</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="k">with</span> <span class="n">pm</span><span class="o">.</span><span class="n">Model</span><span class="p">()</span> <span class="k">as</span> <span class="n">funnel</span><span class="p">:</span>
         <span class="n">θ</span> <span class="o">=</span> <span class="n">pm</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="s2">&quot;θ&quot;</span><span class="p">,</span> <span class="n">mu</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span> <span class="k">if</span> <span class="n">θ</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">θ</span>
         <span class="n">z</span> <span class="o">=</span> <span class="n">pm</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="s2">&quot;z&quot;</span><span class="p">,</span> <span class="n">mu</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">θ</span><span class="o">/</span><span class="mi">2</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="mi">10000</span><span class="p">)</span>
@@ -404,10 +404,9 @@ x_i &amp;\sim {\rm Normal}(z_i, 1)
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-<span class="k">with</span> <span class="n">gen_funnel</span><span class="p">(</span><span class="n">θ</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">gen_funnel</span><span class="p">(</span><span class="n">θ</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
     <span class="n">x_obs</span> <span class="o">=</span> <span class="n">pm</span><span class="o">.</span><span class="n">sample_prior_predictive</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">random_seed</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">prior</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span>
-<span class="n">model</span> <span class="o">=</span> <span class="n">gen_funnel</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x_obs</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">gen_funnel</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x_obs</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -447,7 +446,7 @@ x_i &amp;\sim {\rm Normal}(z_i, 1)
 <div class="output_area rendered_html docutils container">
 <div>
   <progress value='1000' class='' max='1000' style='width:300px; height:20px; vertical-align: middle;'></progress>
-  100.00% [1000/1000 00:22<00:00 Sampling chain 0, 0 divergences]
+  100.00% [1000/1000 00:21<00:00 Sampling chain 0, 0 divergences]
 </div></div>
 </div>
 <p>We next compute the MUSE estimate for the same problem. To reach the same Monte Carlo error as HMC, the number of MUSE simulations should be the same as the effective sample size of the chain we just ran. This is:</p>
@@ -466,7 +465,7 @@ x_i &amp;\sim {\rm Normal}(z_i, 1)
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-59
+38
 </pre></div></div>
 </div>
 <p>Running the MUSE estimate,</p>
@@ -487,8 +486,8 @@ x_i &amp;\sim {\rm Normal}(z_i, 1)
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-MUSE: 100%|██████████| 3000/3000 [00:04&lt;00:00, 643.37it/s]
-get_H: 100%|██████████| 15/15 [00:00&lt;00:00, 36.76it/s]
+MUSE: 100%|██████████| 1950/1950 [00:04&lt;00:00, 475.92it/s]
+get_H: 100%|██████████| 9/9 [00:00&lt;00:00, 58.59it/s]
 </pre></div></div>
 </div>
 <p>Lets also try mean-field variational inference (MFVI) to compare to another approximate method.</p>
@@ -526,7 +525,7 @@ get_H: 100%|██████████| 15/15 [00:00&lt;00:00, 36.76it/s]
 <div class="output_area rendered_html docutils container">
 <div>
   <progress value='10000' class='' max='10000' style='width:300px; height:20px; vertical-align: middle;'></progress>
-  100.00% [10000/10000 01:32<00:00 Average Loss = 17,685]
+  100.00% [10000/10000 01:39<00:00 Average Loss = 17,685]
 </div></div>
 </div>
 <p>Now lets plot the different estimates. In this case, MUSE gives a nearly perfect answer using only a fraction posterior gradient calls. MFVI struggles in both speed and accuracy by comparison.</p>
