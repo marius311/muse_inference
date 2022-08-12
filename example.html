@@ -446,7 +446,7 @@ x_i &amp;\sim {\rm Normal}(z_i, 1)
 <div class="output_area rendered_html docutils container">
 <div>
   <progress value='1000' class='' max='1000' style='width:300px; height:20px; vertical-align: middle;'></progress>
-  100.00% [1000/1000 00:21<00:00 Sampling chain 0, 0 divergences]
+  100.00% [1000/1000 00:29<00:00 Sampling chain 0, 0 divergences]
 </div></div>
 </div>
 <p>We next compute the MUSE estimate for the same problem. To reach the same Monte Carlo error as HMC, the number of MUSE simulations should be the same as the effective sample size of the chain we just ran. This is:</p>
@@ -465,7 +465,7 @@ x_i &amp;\sim {\rm Normal}(z_i, 1)
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-38
+76
 </pre></div></div>
 </div>
 <p>Running the MUSE estimate,</p>
@@ -486,8 +486,8 @@ x_i &amp;\sim {\rm Normal}(z_i, 1)
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-MUSE: 100%|██████████| 1950/1950 [00:04&lt;00:00, 475.92it/s]
-get_H: 100%|██████████| 9/9 [00:00&lt;00:00, 58.59it/s]
+MUSE: 100%|██████████| 3850/3850 [00:07&lt;00:00, 539.62it/s]
+get_H: 100%|██████████| 7/7 [00:00&lt;00:00, 11.32it/s]
 </pre></div></div>
 </div>
 <p>Lets also try mean-field variational inference (MFVI) to compare to another approximate method.</p>
@@ -525,7 +525,7 @@ get_H: 100%|██████████| 9/9 [00:00&lt;00:00, 58.59it/s]
 <div class="output_area rendered_html docutils container">
 <div>
   <progress value='10000' class='' max='10000' style='width:300px; height:20px; vertical-align: middle;'></progress>
-  100.00% [10000/10000 01:39<00:00 Average Loss = 17,685]
+  100.00% [10000/10000 01:42<00:00 Average Loss = 17,685]
 </div></div>
 </div>
 <p>Now lets plot the different estimates. In this case, MUSE gives a nearly perfect answer using only a fraction posterior gradient calls. MFVI struggles in both speed and accuracy by comparison.</p>
