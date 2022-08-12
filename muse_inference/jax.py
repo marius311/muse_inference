@@ -50,10 +50,10 @@ class JaxMuseProblem(MuseProblem):
                     H1 = jacfwd(lambda θ1: grad(lambda θ2: self.logLike(self.sample_x_z(rng, unravel_θ(θ1))[0], z_MAP, unravel_θ(θ2)))(θ_raveled))(θ_raveled)
 
                     # term involving dzMAP/dθ via implicit-diff (w/ conjugate-gradient linear solve)
-                    tol = (z_tol or 1e-3)
+                    cg_kwargs = dict(tol=z_tol) if z_tol is not None else dict()
                     dFdθ = jacfwd(lambda θ: grad(lambda z: self.logLike(x, unravel_z(z), unravel_θ(θ)))(z_MAP_raveled))(θ_raveled)
                     dFdθ1 = jacfwd(lambda θ1: grad(lambda z: self.logLike(self.sample_x_z(rng, unravel_θ(θ1))[0], unravel_z(z), θ))(z_MAP_raveled))(θ_raveled)
-                    inv_dFdz_dFdθ1 = jax.vmap(lambda vec: cg(lambda vec: jvp(lambda z: grad(lambda z: self.logLike(x, unravel_z(z), θ))(z), (z_MAP_raveled,), (vec,))[1], vec, tol=tol)[0], in_axes=1, out_axes=1)(dFdθ1)
+                    inv_dFdz_dFdθ1 = jax.vmap(lambda vec: cg(lambda vec: jvp(lambda z: grad(lambda z: self.logLike(x, unravel_z(z), θ))(z), (z_MAP_raveled,), (vec,))[1], vec, **cg_kwargs)[0], in_axes=1, out_axes=1)(dFdθ1)
                     H2 = -dFdθ.T @ inv_dFdz_dFdθ1
 
                     return H1 + H2
