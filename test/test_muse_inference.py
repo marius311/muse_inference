@@ -45,7 +45,8 @@ def test_scalar_numpy(pmap):
 
     prob = NumpyFunnelMuseProblem(512)
     rng = np.random.RandomState(0)
-    prob.x = prob.sample_x_z(rng, θ_true)[0]
+    (x, z) = prob.sample_x_z(rng, θ_true)
+    prob.set_x(x)
 
     result = prob.solve(θ_start=θ_start, rng=np.random.SeedSequence(1), pmap=pmap)
     prob.get_J(result, nsims=len(result.s_MAP_sims)+10, rng=np.random.SeedSequence(2), pmap=pmap)
@@ -97,7 +98,8 @@ def test_ravel_numpy(pmap):
 
     prob = NumpyFunnelMuseProblem(512)
     rng = np.random.RandomState(0)
-    prob.x = prob.sample_x_z(rng, θ_true)[0]
+    (x, z) = prob.sample_x_z(rng, θ_true)
+    prob.set_x(x)
 
     result = prob.solve(θ_start=θ_start, rng=np.random.SeedSequence(1), pmap=pmap)
     prob.get_J(result, nsims=len(result.s_MAP_sims)+10, rng=np.random.SeedSequence(2), pmap=pmap)
@@ -136,7 +138,7 @@ def test_scalar_jax(implicit_diff):
     prob = JaxFunnelMuseProblem(512)
     keys = prob._split_rng(jax.random.PRNGKey(0), 3)
     (x, z) = prob.sample_x_z(keys[0], θ_true)
-    prob.x = x
+    prob.set_x(x)
 
     result = prob.solve(θ_start=θ_start, rng=keys[1], method=None, maxsteps=10)
     prob.get_J(result, nsims=len(result.s_MAP_sims)+10, rng=keys[2], method=None)
@@ -180,7 +182,7 @@ def test_ravel_jax(implicit_diff):
     prob = JaxFunnelMuseProblem(512)
     keys = prob._split_rng(jax.random.PRNGKey(0), 3)
     (x, z) = prob.sample_x_z(keys[0], θ_true)
-    prob.x = x
+    prob.set_x(x)
 
     result = prob.solve(θ_start=θ_start, rng=keys[1], method=None, maxsteps=10)
     prob.get_J(result, nsims=len(result.s_MAP_sims)+10, rng=keys[2], method=None)

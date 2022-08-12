@@ -5,7 +5,7 @@ from functools import partial
 from numpy.random import SeedSequence
 
 import jax
-from jax import jacfwd, vmap, grad, jvp
+from jax import grad, hessian, jacfwd, jvp, value_and_grad, vmap
 from jax.flatten_util import ravel_pytree
 from jax.numpy import array, atleast_1d, atleast_2d, concatenate, mean
 from jax.numpy.linalg import inv
@@ -17,15 +17,11 @@ from .muse_inference import MuseProblem, MuseResult, ScoreAndMAP
 
 class JaxMuseProblem(MuseProblem):
 
-    def sample_x_z(self, θ):
-        raise NotImplementedError()
-
     def logLike(self, x, z, θ):
         raise NotImplementedError()
 
     def logPrior(self, θ):
         raise NotImplementedError()
-
 
     def __init__(self, implicit_diff=True, jit=True):
 
@@ -39,21 +35,41 @@ class JaxMuseProblem(MuseProblem):
 
                 try:
 
+                    cg_kwargs = dict(tol=z_tol) if z_tol is not None else dict()
+
                     (x, z) = self.sample_x_z(rng, θ)
                     z_MAP_guess = self.z_MAP_guess_from_truth(x, z, θ)
                     z_MAP = self.z_MAP_and_score(x, z_MAP_guess, θ, method=method, θ_tol=θ_tol, z_tol=z_tol).z
 
-                    θ_raveled, z_MAP_raveled = self.ravel_θ(θ), self.ravel_z(z_MAP)
+                    θ_vec, z_MAP_vec = self.ravel_θ(θ), self.ravel_z(z_MAP)
                     unravel_θ, unravel_z = self.unravel_θ, self.unravel_z
 
                     # non-implicit-diff term
-                    H1 = jacfwd(lambda θ1: grad(lambda θ2: self.logLike(self.sample_x_z(rng, unravel_θ(θ1))[0], z_MAP, unravel_θ(θ2)))(θ_raveled))(θ_raveled)
+                    H1 = jacfwd(
+                        lambda θ1: grad(
+                            lambda θ2: self.logLike(self.sample_x_z(rng, unravel_θ(θ1))[0], z_MAP, unravel_θ(θ2))
+                        )(θ_vec)
+                    )(θ_vec)
 
                     # term involving dzMAP/dθ via implicit-diff (w/ conjugate-gradient linear solve)
-                    cg_kwargs = dict(tol=z_tol) if z_tol is not None else dict()
-                    dFdθ = jacfwd(lambda θ: grad(lambda z: self.logLike(x, unravel_z(z), unravel_θ(θ)))(z_MAP_raveled))(θ_raveled)
-                    dFdθ1 = jacfwd(lambda θ1: grad(lambda z: self.logLike(self.sample_x_z(rng, unravel_θ(θ1))[0], unravel_z(z), θ))(z_MAP_raveled))(θ_raveled)
-                    inv_dFdz_dFdθ1 = jax.vmap(lambda vec: cg(lambda vec: jvp(lambda z: grad(lambda z: self.logLike(x, unravel_z(z), θ))(z), (z_MAP_raveled,), (vec,))[1], vec, **cg_kwargs)[0], in_axes=1, out_axes=1)(dFdθ1)
+                    dFdθ = jacfwd(
+                        lambda θ: grad(
+                            lambda z: self.logLike(x, unravel_z(z), unravel_θ(θ))
+                        )(z_MAP_vec)
+                    )(θ_vec)
+                    dFdθ1 = jacfwd(
+                        lambda θ1: grad(
+                            lambda z: self.logLike(self.sample_x_z(rng, unravel_θ(θ1))[0], unravel_z(z), θ)
+                        )(z_MAP_vec)
+                    )(θ_vec)
+                    inv_dFdz_dFdθ1 = vmap(
+                        lambda vec: cg(
+                            lambda vec: jvp(lambda z: grad(lambda z: self.logLike(x, unravel_z(z), θ))(z), (z_MAP_vec,), (vec,))[1], 
+                            vec, 
+                            **cg_kwargs
+                        )[0], 
+                        in_axes=1, out_axes=1
+                    )(dFdθ1)
                     H2 = -dFdθ.T @ inv_dFdz_dFdθ1
 
                     return H1 + H2
@@ -77,7 +93,7 @@ class JaxMuseProblem(MuseProblem):
             self.z_MAP_and_score = jax.jit(self.z_MAP_and_score, static_argnames=("self", "method"))
 
     def val_gradz_gradθ_logLike(self, x, z, θ, transformed_θ=None):
-        logLike, (gradz_logLike, gradθ_logLike) = jax.value_and_grad(self.logLike, argnums=(1, 2))(x, z, θ)
+        logLike, (gradz_logLike, gradθ_logLike) = value_and_grad(self.logLike, argnums=(1, 2))(x, z, θ)
         return (logLike, gradz_logLike, gradθ_logLike)
 
     def z_MAP_and_score(self, x, z_guess, θ, method=None, options=dict(), z_tol=None, θ_tol=None):
@@ -104,7 +120,7 @@ class JaxMuseProblem(MuseProblem):
 
     def gradθ_hessθ_logPrior(self, θ, transformed_θ=None):
         g = grad(self.logPrior)(θ)
-        H = jax.hessian(self.logPrior)(θ)
+        H = hessian(self.logPrior)(θ)
         return (g, H)
 
     def _ravel_unravel(self, x):

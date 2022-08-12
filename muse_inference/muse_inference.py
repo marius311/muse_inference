@@ -81,7 +81,13 @@ class MuseProblem():
         self._unravel_z = None
         self.np = np
 
-    def set_data(self, x):
+    def sample_x_z(self, θ):
+        raise NotImplementedError()
+
+    def val_gradz_gradθ_logLike(self, x, z, θ, transformed_θ=None):
+        raise NotImplementedError()
+
+    def set_x(self, x):
         self.x = x
 
     def standardize_θ(self, θ):
@@ -96,17 +102,11 @@ class MuseProblem():
     def has_θ_transform(self):
         return False
 
-    def sample_x_z(self, θ):
-        raise NotImplementedError()
-
     def z_MAP_guess_from_truth(self, x, z, θ):
         return self.unravel_z(0 * self.ravel_z(z))
 
     def gradθ_hessθ_logPrior(self, θ, transformed_θ=None):
         return (0,0)
-
-    def val_gradz_gradθ_logLike(self, x, z, θ, transformed_θ=None):
-        raise NotImplementedError()
 
     def _split_rng(self, rng, N):
         return [default_rng(s) for s in copy(rng).spawn(N)]
