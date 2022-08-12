@@ -424,8 +424,8 @@ Populating the interactive namespace from numpy and matplotlib
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-MUSE: 100%|██████████| 5050/5050 [00:14&lt;00:00, 342.96it/s]
-get_H: 100%|██████████| 10/10 [00:01&lt;00:00,  6.77it/s]
+MUSE: 100%|██████████| 5050/5050 [00:08&lt;00:00, 606.01it/s]
+get_H: 100%|██████████| 10/10 [00:00&lt;00:00, 11.51it/s]
 </pre></div></div>
 </div>
 <p>When there are multiple parameters, the starting guess should be specified as as a dictionary, as above.</p>
@@ -444,7 +444,7 @@ get_H: 100%|██████████| 10/10 [00:01&lt;00:00,  6.77it/s]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-{&#39;μ&#39;: array([0.40842233, 0.41796136]), &#39;σ&#39;: array(0.89459097)}
+{&#39;μ&#39;: array([0.40489074, 0.42095688]), &#39;σ&#39;: array(0.91969963)}
 </pre></div></div>
 </div>
 <p>and the covariance as matrix, with parameters concatenated in the order they appear in the model (or in the order specified in <code class="docutils literal notranslate"><span class="pre">params</span></code>, if that was used):</p>
@@ -462,9 +462,9 @@ get_H: 100%|██████████| 10/10 [00:01&lt;00:00,  6.77it/s]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-array([[ 0.03031984,  0.00595757, -0.01080122],
-       [ 0.00595757,  0.03350543, -0.00778456],
-       [-0.01080122, -0.00778456,  0.02513137]])
+array([[ 1.86115895e-02, -8.11185411e-05, -5.68335978e-03],
+       [-8.11185411e-05,  3.68882367e-02, -1.71506153e-02],
+       [-5.68335978e-03, -1.71506153e-02,  2.19031887e-02]])
 </pre></div></div>
 </div>
 <p>The <code class="docutils literal notranslate"><span class="pre">result.ravel</span></code> and <code class="docutils literal notranslate"><span class="pre">result.unravel</span></code> functions can be used to convert between dictionary and vector representations of the parameters. For example, to compute the standard deviation for each parameter (the square root of the diagonal of the covariance):</p>
@@ -482,7 +482,7 @@ array([[ 0.03031984,  0.00595757, -0.01080122],
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-{&#39;μ&#39;: array([0.17412594, 0.18304489]), &#39;σ&#39;: array(0.15852878)}
+{&#39;μ&#39;: array([0.1364243 , 0.19206311]), &#39;σ&#39;: array(0.14799726)}
 </pre></div></div>
 </div>
 <p>or to convert the mean parameters to a vector:</p>
@@ -500,7 +500,7 @@ array([[ 0.03031984,  0.00595757, -0.01080122],
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-array([0.40842233, 0.41796136, 0.89459097])
+array([0.40489074, 0.42095688, 0.91969963])
 </pre></div></div>
 </div>
 </section>
@@ -545,7 +545,7 @@ array([0.40842233, 0.41796136, 0.89459097])
 </div>
 <p>Note that the super-class <code class="docutils literal notranslate"><span class="pre">JaxMuseProblem</span></code> will automatically take care of JIT compiling these functions, so you do <em>not</em> need to manually decorate them with <code class="docutils literal notranslate"><span class="pre">&#64;jit</span></code>. However, if your functions contain code which cannot be JIT compiled, you should pass <code class="docutils literal notranslate"><span class="pre">super().__init__(jit=False)</span></code> to the super constructor in your <code class="docutils literal notranslate"><span class="pre">__init__</span></code> function.</p>
 <p>The JAX MUSE interface also contains an option to use implicit differentation to compute the <span class="math notranslate nohighlight">\(H\)</span> matrix (paper in prep). This is more numerically stable and faster than the default, which uses finite differences, although requires 2nd order automatic differentiation to work through your posterior. It’s enabled by default, but can be disabled with <code class="docutils literal notranslate"><span class="pre">super().__init__(implicit_diff=False)</span></code>.</p>
-<p>With the problem defined, we now generate some simulated data and save it to the problem with <code class="docutils literal notranslate"><span class="pre">set_data</span></code>. Note also the use of <code class="docutils literal notranslate"><span class="pre">PRNGKey</span></code> (rather than <code class="docutils literal notranslate"><span class="pre">RandomState</span></code> for PyMC/Numpy) for random number generation.</p>
+<p>With the problem defined, we now generate some simulated data and save it to the problem with <code class="docutils literal notranslate"><span class="pre">set_x</span></code>. Note also the use of <code class="docutils literal notranslate"><span class="pre">PRNGKey</span></code> (rather than <code class="docutils literal notranslate"><span class="pre">RandomState</span></code> for PyMC/Numpy) for random number generation.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
@@ -553,7 +553,7 @@ array([0.40842233, 0.41796136, 0.89459097])
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">prob</span> <span class="o">=</span> <span class="n">JaxFunnelMuseProblem</span><span class="p">(</span><span class="mi">10000</span><span class="p">,</span> <span class="n">implicit_diff</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="n">key</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">PRNGKey</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">sample_x_z</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-<span class="n">prob</span><span class="o">.</span><span class="n">set_data</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="n">prob</span><span class="o">.</span><span class="n">set_x</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -579,8 +579,8 @@ WARNING:absl:No GPU/TPU found, falling back to CPU. (Set TF_CPP_MIN_LOG_LEVEL=0 
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-MUSE: 100%|██████████| 5050/5050 [00:00&lt;00:00, 5100.51it/s]
-get_H: 100%|██████████| 10/10 [00:00&lt;00:00, 615.25it/s]
+MUSE: 100%|██████████| 5050/5050 [00:00&lt;00:00, 8374.80it/s]
+get_H: 100%|██████████| 10/10 [00:00&lt;00:00, 684.37it/s]
 </pre></div></div>
 </div>
 <p>Note that the solution here is obtained around 10X faster that the PyMC version of this in the <a class="reference external" href="example.html">Example</a> page (the cloud machines which build these docs don’t always achieve the 10X, but you see this if you run these examples locally). The Jax interface has much lower overhead, which will be noticeable for very fast posteriors like the one above.</p>
@@ -632,7 +632,7 @@ get_H: 100%|██████████| 10/10 [00:00&lt;00:00, 615.25it/s]
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">prob</span> <span class="o">=</span> <span class="n">JaxPyTreeFunnelMuseProblem</span><span class="p">(</span><span class="mi">10000</span><span class="p">)</span>
 <span class="n">key</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">PRNGKey</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">sample_x_z</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">θ_true</span><span class="p">)</span>
-<span class="n">prob</span><span class="o">.</span><span class="n">set_data</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="n">prob</span><span class="o">.</span><span class="n">set_x</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -650,8 +650,8 @@ get_H: 100%|██████████| 10/10 [00:00&lt;00:00, 615.25it/s]
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-MUSE: 100%|██████████| 5050/5050 [00:09&lt;00:00, 528.44it/s]
-get_H: 100%|██████████| 10/10 [00:00&lt;00:00, 107.53it/s]
+MUSE: 100%|██████████| 5050/5050 [00:09&lt;00:00, 517.37it/s]
+get_H: 100%|██████████| 10/10 [00:00&lt;00:00, 193.54it/s]
 </pre></div></div>
 </div>
 <p>The result is returned as a pytree:</p>
@@ -669,8 +669,8 @@ get_H: 100%|██████████| 10/10 [00:00&lt;00:00, 107.53it/s]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-{&#39;θ1&#39;: DeviceArray(-1.0018644, dtype=float32),
- &#39;θ2&#39;: DeviceArray(2.0271175, dtype=float32)}
+{&#39;θ1&#39;: DeviceArray(-1.0020632, dtype=float32),
+ &#39;θ2&#39;: DeviceArray(2.027134, dtype=float32)}
 </pre></div></div>
 </div>
 <p>and the covariance as a matrix:</p>
@@ -688,8 +688,8 @@ get_H: 100%|██████████| 10/10 [00:00&lt;00:00, 107.53it/s]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-array([[ 3.3435659e-03, -4.2480078e-05],
-       [-4.2480078e-05,  2.4452971e-04]], dtype=float32)
+array([[ 3.3819058e-03, -2.5075144e-05],
+       [-2.5075142e-05,  2.4444878e-04]], dtype=float32)
 </pre></div></div>
 </div>
 <p>The <code class="docutils literal notranslate"><span class="pre">result.ravel</span></code> and <code class="docutils literal notranslate"><span class="pre">result.unravel</span></code> functions can be used to convert between pytree and vector representations of the parameters. For example, to compute the standard deviation for each parameter (the square root of the diagonal of the covariance):</p>
@@ -707,8 +707,8 @@ array([[ 3.3435659e-03, -4.2480078e-05],
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-{&#39;θ1&#39;: DeviceArray(0.05782358, dtype=float32),
- &#39;θ2&#39;: DeviceArray(0.01563745, dtype=float32)}
+{&#39;θ1&#39;: DeviceArray(0.05815415, dtype=float32),
+ &#39;θ2&#39;: DeviceArray(0.01563486, dtype=float32)}
 </pre></div></div>
 </div>
 <p>or to convert the mean parameters to a vector:</p>
@@ -726,7 +726,7 @@ array([[ 3.3435659e-03, -4.2480078e-05],
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-DeviceArray([-1.0018644,  2.0271175], dtype=float32)
+DeviceArray([-1.0020632,  2.027134 ], dtype=float32)
 </pre></div></div>
 </div>
 </section>

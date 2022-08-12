@@ -136,13 +136,13 @@ Note that the super-class `JaxMuseProblem` will automatically take care of JIT c
 The JAX MUSE interface also contains an option to use implicit differentation to compute the $H$ matrix (paper in prep). This is more numerically stable and faster than the default, which uses finite differences, although requires 2nd order automatic differentiation to work through your posterior. It's enabled by default, but can be disabled with `super().__init__(implicit_diff=False)`.
 
 
-With the problem defined, we now generate some simulated data and save it to the problem with `set_data`. Note also the use of `PRNGKey` (rather than `RandomState` for PyMC/Numpy) for random number generation. 
+With the problem defined, we now generate some simulated data and save it to the problem with `set_x`. Note also the use of `PRNGKey` (rather than `RandomState` for PyMC/Numpy) for random number generation. 
 
 ```python
 prob = JaxFunnelMuseProblem(10000, implicit_diff=True)
 key = jax.random.PRNGKey(0)
 (x, z) = prob.sample_x_z(key, 0)
-prob.set_data(x)
+prob.set_x(x)
 ```
 
 And finally, run MUSE:
@@ -197,7 +197,7 @@ Here, `x`, `θ`, and `z` are all dictionaries. We generate the problem as usual,
 prob = JaxPyTreeFunnelMuseProblem(10000)
 key = jax.random.PRNGKey(0)
 (x, z) = prob.sample_x_z(key, θ_true)
-prob.set_data(x)
+prob.set_x(x)
 ```
 
 and run MUSE:
