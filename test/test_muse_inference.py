@@ -13,7 +13,7 @@ import pymc as pm
 import pytest
 from multiprocess import Pool
 from muse_inference import MuseProblem, MuseResult
-from muse_inference.jax import JaxMuseProblem, JittableJaxMuseProblem
+from muse_inference.jax import JaxMuseProblem
 from muse_inference.pymc import PyMCMuseProblem
 
 
@@ -109,26 +109,24 @@ def test_ravel_numpy(pmap):
 
 
 
-def test_scalar_jax():
+@pytest.mark.parametrize("implicit_diff", [True, False])
+def test_scalar_jax(implicit_diff):
 
-    class JaxFunnelMuseProblem(JittableJaxMuseProblem):
+    class JaxFunnelMuseProblem(JaxMuseProblem):
 
         def __init__(self, N):
-            super().__init__()
+            super().__init__(implicit_diff=implicit_diff)
             self.N = N
 
-        @partial(jax.jit, static_argnums=0)
         def sample_x_z(self, key, θ):
             keys = jax.random.split(key, 2)
             z = jax.random.normal(keys[0], (self.N,)) * jnp.exp(θ/2)
             x = z + jax.random.normal(keys[1], (self.N,))
             return (x, z)
 
-        @partial(jax.jit, static_argnums=0)
         def logLike(self, x, z, θ):
             return -(jnp.sum((x - z)**2) + jnp.sum(z**2) / jnp.exp(θ) + 512*θ) / 2
 
-        @partial(jax.jit, static_argnums=0)
         def logPrior(self, θ):
             return -θ**2 / (2*3**2)
 
@@ -149,15 +147,15 @@ def test_scalar_jax():
     assert result.dist.cdf(result.ravel(θ_true)) > 0.01
 
 
-def test_ravel_jax():
+@pytest.mark.parametrize("implicit_diff", [True, False])
+def test_ravel_jax(implicit_diff):
 
-    class JaxFunnelMuseProblem(JittableJaxMuseProblem):
+    class JaxFunnelMuseProblem(JaxMuseProblem):
 
         def __init__(self, N):
-            super().__init__()
+            super().__init__(implicit_diff=implicit_diff)
             self.N = N
 
-        @partial(jax.jit, static_argnums=0)
         def sample_x_z(self, key, θ):
             (θ1, θ2) = (θ["θ1"], θ["θ2"])
             keys = jax.random.split(key, 4)
@@ -167,14 +165,12 @@ def test_ravel_jax():
             x2 = z2 + jax.random.normal(keys[3], (self.N,))        
             return ({"x1":x1, "x2":x2}, {"z1":z1, "z2":z2})
 
-        @partial(jax.jit, static_argnums=0)
         def logLike(self, x, z, θ):
             return (
                 -(jnp.sum((x["x1"] - z["z1"])**2) + jnp.sum(z["z1"]**2) / jnp.exp(θ["θ1"]) + 512*θ["θ1"]) / 2
                 -(jnp.sum((x["x2"] - z["z2"])**2) + jnp.sum(z["z2"]**2) / jnp.exp(θ["θ2"]) + 512*θ["θ2"]) / 2
             )
         
-        @partial(jax.jit, static_argnums=0)
         def logPrior(self, θ):
             return - θ["θ1"]**2 / (2*3**2) - θ["θ2"]**2 / (2*3**2)
 

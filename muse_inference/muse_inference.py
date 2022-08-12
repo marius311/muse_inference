@@ -4,6 +4,7 @@ __all__ = ["MuseProblem", "MuseResult", "ScoreAndMAP"]
 from collections import namedtuple
 from copy import copy
 from datetime import datetime, timedelta
+from functools import partial
 from numbers import Number
 from time import thread_time
 
@@ -79,6 +80,9 @@ class MuseProblem():
         self._unravel_θ = None
         self._unravel_z = None
         self.np = np
+
+    def set_data(self, x):
+        self.x = x
 
     def standardize_θ(self, θ):
         return θ
@@ -417,6 +421,29 @@ class MuseProblem():
         return result
 
 
+    def _get_H_i(self, rng, *, θ, method=None, θ_tol=None, z_tol=None, step=None, skip_errors=False):
+
+        # for each sim, do one fit at fiducial which we'll
+        # reuse as a starting point when fudging θ by +/-ϵ
+        θfid = θ
+        (x, z) = self.sample_x_z(rng, θfid)
+        z_MAP_guess = self.z_MAP_guess_from_truth(x, z, θfid)
+        z_MAP_guess_fid = self.z_MAP_and_score(x, z_MAP_guess, θfid, method=method, θ_tol=θ_tol, z_tol=z_tol).z
+
+        def get_s_MAP(θvec):
+            θ = self.unravel_θ(θvec)
+            (x, _) = self.sample_x_z(copy(rng), θ)
+            return self.ravel_θ(self.z_MAP_and_score(x, z_MAP_guess_fid, θfid, method=method, θ_tol=θ_tol, z_tol=z_tol).s)
+
+        try:
+            return pjacobian(get_s_MAP, self.ravel_θ(θfid), step)
+        except Exception:
+            if skip_errors:
+                return None
+            else:
+                raise
+
+
     def get_H(
         self,
         result = None,
@@ -446,7 +473,6 @@ class MuseProblem():
                 raise Exception("θ or result.θ must be given.")
             else:
                 θ = result.θ
-        θfid = θ
 
         if result.ravel is None:
             (result.ravel, result.unravel) = self.ravel_θ, self.unravel_θ
@@ -454,8 +480,6 @@ class MuseProblem():
         nsims_remaining = nsims - len(result.Hs)
 
         if nsims_remaining > 0:
-
-            Nθ = len(self.ravel_θ(θ))
 
             # default to finite difference step size of 0.1σ with σ roughly
             # estimated from s_MAP_sims sims, if we have them
@@ -465,36 +489,13 @@ class MuseProblem():
                 else:
                     step = 1e-5
 
-            pbar = tqdm(total=nsims_remaining*(2*Nθ+1), desc="get_H") if progress else None
+            Nθ = len(self.ravel_θ(θ))
+            pbar = partial(tqdm, total=nsims_remaining, desc="get_H", disable=(not progress))
+
             t0 = datetime.now()
-
-            # finite difference Jacobian
-            # pmap_sims, pmap_jac = (pmap_over == :jac || (pmap_over == :auto && length(θ₀) > nsims_remaining)) ? (_map, pmap) : (pmap, _map)
-            def get_H(rng):
-
-                # for each sim, do one fit at fiducial which we'll
-                # reuse as a starting point when fudging θ by +/-ϵ 
-                (x, z) = self.sample_x_z(rng, θfid)
-                z_MAP_guess = self.z_MAP_guess_from_truth(x, z, θfid)
-                z_MAP_guess_fid = self.z_MAP_and_score(x, z_MAP_guess, θfid, method=method, θ_tol=θ_tol, z_tol=z_tol).z
-                if progress: pbar.update()
-
-                def get_s_MAP(θvec):
-                    θ = self.unravel_θ(θvec)
-                    (x, _) = self.sample_x_z(copy(rng), θ)
-                    return self.ravel_θ(self.z_MAP_and_score(x, z_MAP_guess_fid, θfid, method=method, θ_tol=θ_tol, z_tol=z_tol).s)
-
-                try:
-                    return pjacobian(get_s_MAP, self.ravel_θ(θfid), step, pbar=pbar)
-                except Exception:
-                    if skip_errors:
-                        return None
-                    else:
-                        raise
-
             rngs = self._split_rng(rng, nsims_remaining)
-            result.Hs.extend(H for H in map(get_H, rngs) if H is not None)
-            
+            _get_H_i = partial(self._get_H_i, θ=θ, method=method, θ_tol=θ_tol, z_tol=z_tol, step=step, skip_errors=skip_errors)
+            result.Hs.extend(H for H in pbar(map(_get_H_i, rngs)) if H is not None)
             result.time += datetime.now() - t0
 
         result.H = np.mean(np.array(result.Hs), axis=0)
