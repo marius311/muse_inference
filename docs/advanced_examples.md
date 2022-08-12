@@ -5,7 +5,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.13.6
+      jupytext_version: 1.13.8
   kernelspec:
     display_name: 'Python 3.9.7 (''.venv'': poetry)'
     language: python
@@ -106,41 +106,43 @@ We can also use [Jax](https://jax.readthedocs.io/) to define the problem. In thi
 from functools import partial
 import jax
 import jax.numpy as jnp
-from muse_inference.jax import JittableJaxMuseProblem, JaxMuseProblem
+from muse_inference.jax import JaxMuseProblem
 ```
 
-Let's implement the noisy funnel problem from the [Example](example.html) page. To do so, extend either `JaxMuseProblem`, or, if your code is able to be JIT compiled by Jax, extend `JittableJaxMuseProblem` and decorate the functions with `jax.jit`:
+Let's implement the noisy funnel problem from the [Example](example.html) page. To do so, extend `JaxMuseProblem` and define `sample_x_z`, `logLike`, and `logPrior`. 
 
 ```python
-class JaxFunnelMuseProblem(JittableJaxMuseProblem):
+class JaxFunnelMuseProblem(JaxMuseProblem):
 
-    def __init__(self, N):
-        super().__init__()
+    def __init__(self, N, **kwargs):
+        super().__init__(**kwargs)
         self.N = N
 
-    @partial(jax.jit, static_argnums=0)
     def sample_x_z(self, key, θ):
         keys = jax.random.split(key, 2)
         z = jax.random.normal(keys[0], (self.N,)) * jnp.exp(θ/2)
         x = z + jax.random.normal(keys[1], (self.N,))
         return (x, z)
 
-    @partial(jax.jit, static_argnums=0)
     def logLike(self, x, z, θ):
         return -(jnp.sum((x - z)**2) + jnp.sum(z**2) / jnp.exp(θ) + 512*θ) / 2
 
-    @partial(jax.jit, static_argnums=0)
     def logPrior(self, θ):
         return -θ**2 / (2*3**2)
 ```
 
-Now generate some simulated data, which we set into `prob.x`. Note also the use of `PRNGKey` (rather than `RandomState` for PyMC/Numpy) for random number generation. 
+Note that the super-class `JaxMuseProblem` will automatically take care of JIT compiling these functions, so you do *not* need to manually decorate them with `@jit`. However, if your functions contain code which cannot be JIT compiled, you should pass `super().__init__(jit=False)` to the super constructor in your `__init__` function.
+
+The JAX MUSE interface also contains an option to use implicit differentation to compute the $H$ matrix (paper in prep). This is more numerically stable and faster than the default, which uses finite differences, although requires 2nd order automatic differentiation to work through your posterior. It's enabled by default, but can be disabled with `super().__init__(implicit_diff=False)`.
+
+
+With the problem defined, we now generate some simulated data and save it to the problem with `set_data`. Note also the use of `PRNGKey` (rather than `RandomState` for PyMC/Numpy) for random number generation. 
 
 ```python
-prob = JaxFunnelMuseProblem(10000)
+prob = JaxFunnelMuseProblem(10000, implicit_diff=True)
 key = jax.random.PRNGKey(0)
 (x, z) = prob.sample_x_z(key, 0)
-prob.x = x
+prob.set_data(x)
 ```
 
 And finally, run MUSE:
@@ -159,13 +161,12 @@ Note that the solution here is obtained around 10X faster that the PyMC version 
 One convenient aspect of using Jax is that the parameters, `θ`, and latent space, `z`, can be any [pytree](https://jax.readthedocs.io/en/latest/pytrees.html), ie tuples, dictionaries, nested combinations of them, etc... (there is no requirement on the data format of the `x` variable). To demonstrate, consider a problem which is just two copies of the noisy funnel problem:
 
 ```python
-class JaxPyTreeFunnelMuseProblem(JittableJaxMuseProblem):
+class JaxPyTreeFunnelMuseProblem(JaxMuseProblem):
 
     def __init__(self, N):
         super().__init__()
         self.N = N
 
-    @partial(jax.jit, static_argnums=0)
     def sample_x_z(self, key, θ):
         (θ1, θ2) = (θ["θ1"], θ["θ2"])
         keys = jax.random.split(key, 4)
@@ -175,14 +176,12 @@ class JaxPyTreeFunnelMuseProblem(JittableJaxMuseProblem):
         x2 = z2 + jax.random.normal(keys[3], (self.N,))        
         return ({"x1":x1, "x2":x2}, {"z1":z1, "z2":z2})
 
-    @partial(jax.jit, static_argnums=0)
     def logLike(self, x, z, θ):
         return (
             -(jnp.sum((x["x1"] - z["z1"])**2) + jnp.sum(z["z1"]**2) / jnp.exp(θ["θ1"]) + 512*θ["θ1"]) / 2
             -(jnp.sum((x["x2"] - z["z2"])**2) + jnp.sum(z["z2"]**2) / jnp.exp(θ["θ2"]) + 512*θ["θ2"]) / 2
         )
 
-    @partial(jax.jit, static_argnums=0)
     def logPrior(self, θ):
         return - θ["θ1"]**2 / (2*3**2) - θ["θ2"]**2 / (2*3**2)
 ```
@@ -198,7 +197,7 @@ Here, `x`, `θ`, and `z` are all dictionaries. We generate the problem as usual,
 prob = JaxPyTreeFunnelMuseProblem(10000)
 key = jax.random.PRNGKey(0)
 (x, z) = prob.sample_x_z(key, θ_true)
-prob.x = x
+prob.set_data(x)
 ```
 
 and run MUSE:
