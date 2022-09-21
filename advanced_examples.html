@@ -424,8 +424,8 @@ Populating the interactive namespace from numpy and matplotlib
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-MUSE: 100%|██████████| 5050/5050 [00:08&lt;00:00, 606.01it/s]
-get_H: 100%|██████████| 10/10 [00:00&lt;00:00, 11.51it/s]
+MUSE: 100%|██████████| 5050/5050 [00:06&lt;00:00, 762.22it/s]
+get_H: 100%|██████████| 10/10 [00:01&lt;00:00,  7.24it/s]
 </pre></div></div>
 </div>
 <p>When there are multiple parameters, the starting guess should be specified as as a dictionary, as above.</p>
@@ -444,7 +444,7 @@ get_H: 100%|██████████| 10/10 [00:00&lt;00:00, 11.51it/s]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-{&#39;μ&#39;: array([0.40489074, 0.42095688]), &#39;σ&#39;: array(0.91969963)}
+{&#39;μ&#39;: array([0.39311117, 0.41749348]), &#39;σ&#39;: array(0.90020249)}
 </pre></div></div>
 </div>
 <p>and the covariance as matrix, with parameters concatenated in the order they appear in the model (or in the order specified in <code class="docutils literal notranslate"><span class="pre">params</span></code>, if that was used):</p>
@@ -462,9 +462,9 @@ get_H: 100%|██████████| 10/10 [00:00&lt;00:00, 11.51it/s]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-array([[ 1.86115895e-02, -8.11185411e-05, -5.68335978e-03],
-       [-8.11185411e-05,  3.68882367e-02, -1.71506153e-02],
-       [-5.68335978e-03, -1.71506153e-02,  2.19031887e-02]])
+array([[ 0.01810035,  0.00094371, -0.01529782],
+       [ 0.00094371,  0.01064604, -0.01078911],
+       [-0.01529782, -0.01078911,  0.03439908]])
 </pre></div></div>
 </div>
 <p>The <code class="docutils literal notranslate"><span class="pre">result.ravel</span></code> and <code class="docutils literal notranslate"><span class="pre">result.unravel</span></code> functions can be used to convert between dictionary and vector representations of the parameters. For example, to compute the standard deviation for each parameter (the square root of the diagonal of the covariance):</p>
@@ -482,7 +482,7 @@ array([[ 1.86115895e-02, -8.11185411e-05, -5.68335978e-03],
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-{&#39;μ&#39;: array([0.1364243 , 0.19206311]), &#39;σ&#39;: array(0.14799726)}
+{&#39;μ&#39;: array([0.13453753, 0.10317967]), &#39;σ&#39;: array(0.1854699)}
 </pre></div></div>
 </div>
 <p>or to convert the mean parameters to a vector:</p>
@@ -500,14 +500,14 @@ array([[ 1.86115895e-02, -8.11185411e-05, -5.68335978e-03],
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-array([0.40489074, 0.42095688, 0.91969963])
+array([0.39311117, 0.41749348, 0.90020249])
 </pre></div></div>
 </div>
 </section>
 <section id="Jax">
 <h2>Jax<a class="headerlink" href="#Jax" title="Permalink to this headline"></a></h2>
 <p>We can also use <a class="reference external" href="https://jax.readthedocs.io/">Jax</a> to define the problem. In this case we will write out function to generate forward samples and to compute the posterior, and Jax will provide necessary gradients for free. To use Jax, load the necessary packages:</p>
-<div class="nbinput nblast docutils container">
+<div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
@@ -517,6 +517,16 @@ array([0.40489074, 0.42095688, 0.91969963])
 <span class="kn">from</span> <span class="nn">muse_inference.jax</span> <span class="kn">import</span> <span class="n">JaxMuseProblem</span>
 </pre></div>
 </div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+2022-09-21 18:22:18.388109: W external/org_tensorflow/tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library &#39;libcudart.so.11.0&#39;; dlerror: libcudart.so.11.0: cannot open shared object file: No such file or directory; LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.9.13/x64/lib
+2022-09-21 18:22:18.429300: W external/org_tensorflow/tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library &#39;libcudart.so.11.0&#39;; dlerror: libcudart.so.11.0: cannot open shared object file: No such file or directory; LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.9.13/x64/lib
+2022-09-21 18:22:18.432185: W external/org_tensorflow/tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library &#39;libcudart.so.11.0&#39;; dlerror: libcudart.so.11.0: cannot open shared object file: No such file or directory; LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.9.13/x64/lib
+</pre></div></div>
 </div>
 <p>Let’s implement the noisy funnel problem from the <a class="reference external" href="example.html">Example</a> page. To do so, extend <code class="docutils literal notranslate"><span class="pre">JaxMuseProblem</span></code> and define <code class="docutils literal notranslate"><span class="pre">sample_x_z</span></code>, <code class="docutils literal notranslate"><span class="pre">logLike</span></code>, and <code class="docutils literal notranslate"><span class="pre">logPrior</span></code>.</p>
 <div class="nbinput nblast docutils container">
@@ -562,6 +572,8 @@ array([0.40489074, 0.42095688, 0.91969963])
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
+2022-09-21 18:22:18.785935: W external/org_tensorflow/tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library &#39;libcuda.so.1&#39;; dlerror: libcuda.so.1: cannot open shared object file: No such file or directory; LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.9.13/x64/lib
+2022-09-21 18:22:18.785966: W external/org_tensorflow/tensorflow/stream_executor/cuda/cuda_driver.cc:263] failed call to cuInit: UNKNOWN ERROR (303)
 WARNING:absl:No GPU/TPU found, falling back to CPU. (Set TF_CPP_MIN_LOG_LEVEL=0 and rerun for more info.)
 </pre></div></div>
 </div>
@@ -579,8 +591,8 @@ WARNING:absl:No GPU/TPU found, falling back to CPU. (Set TF_CPP_MIN_LOG_LEVEL=0 
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-MUSE: 100%|██████████| 5050/5050 [00:00&lt;00:00, 8374.80it/s]
-get_H: 100%|██████████| 10/10 [00:00&lt;00:00, 684.37it/s]
+MUSE: 100%|██████████| 5050/5050 [00:00&lt;00:00, 8335.32it/s]
+get_H: 100%|██████████| 10/10 [00:00&lt;00:00, 2043.51it/s]
 </pre></div></div>
 </div>
 <p>Note that the solution here is obtained around 10X faster that the PyMC version of this in the <a class="reference external" href="example.html">Example</a> page (the cloud machines which build these docs don’t always achieve the 10X, but you see this if you run these examples locally). The Jax interface has much lower overhead, which will be noticeable for very fast posteriors like the one above.</p>
@@ -650,8 +662,8 @@ get_H: 100%|██████████| 10/10 [00:00&lt;00:00, 684.37it/s]
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-MUSE: 100%|██████████| 5050/5050 [00:09&lt;00:00, 517.37it/s]
-get_H: 100%|██████████| 10/10 [00:00&lt;00:00, 193.54it/s]
+MUSE: 100%|██████████| 5050/5050 [00:05&lt;00:00, 866.27it/s]
+get_H: 100%|██████████| 10/10 [00:00&lt;00:00, 846.10it/s]
 </pre></div></div>
 </div>
 <p>The result is returned as a pytree:</p>
@@ -669,8 +681,8 @@ get_H: 100%|██████████| 10/10 [00:00&lt;00:00, 193.54it/s]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-{&#39;θ1&#39;: DeviceArray(-1.0020632, dtype=float32),
- &#39;θ2&#39;: DeviceArray(2.027134, dtype=float32)}
+{&#39;θ1&#39;: DeviceArray(-1.0040989, dtype=float32),
+ &#39;θ2&#39;: DeviceArray(2.0271258, dtype=float32)}
 </pre></div></div>
 </div>
 <p>and the covariance as a matrix:</p>
@@ -688,8 +700,8 @@ get_H: 100%|██████████| 10/10 [00:00&lt;00:00, 193.54it/s]
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-array([[ 3.3819058e-03, -2.5075144e-05],
-       [-2.5075142e-05,  2.4444878e-04]], dtype=float32)
+array([[ 8.62497   , -0.02516564],
+       [-0.02516564,  7.9217653 ]], dtype=float32)
 </pre></div></div>
 </div>
 <p>The <code class="docutils literal notranslate"><span class="pre">result.ravel</span></code> and <code class="docutils literal notranslate"><span class="pre">result.unravel</span></code> functions can be used to convert between pytree and vector representations of the parameters. For example, to compute the standard deviation for each parameter (the square root of the diagonal of the covariance):</p>
@@ -707,8 +719,8 @@ array([[ 3.3819058e-03, -2.5075144e-05],
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-{&#39;θ1&#39;: DeviceArray(0.05815415, dtype=float32),
- &#39;θ2&#39;: DeviceArray(0.01563486, dtype=float32)}
+{&#39;θ1&#39;: DeviceArray(2.93683, dtype=float32),
+ &#39;θ2&#39;: DeviceArray(2.814563, dtype=float32)}
 </pre></div></div>
 </div>
 <p>or to convert the mean parameters to a vector:</p>
@@ -726,7 +738,7 @@ array([[ 3.3819058e-03, -2.5075144e-05],
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-DeviceArray([-1.0020632,  2.027134 ], dtype=float32)
+DeviceArray([-1.0040989,  2.0271258], dtype=float32)
 </pre></div></div>
 </div>
 </section>
