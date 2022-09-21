@@ -23,7 +23,7 @@ class JaxMuseProblem(MuseProblem):
     def logPrior(self, θ):
         raise NotImplementedError()
 
-    def __init__(self, implicit_diff=True, jit=True):
+    def __init__(self, implicit_diff=True, jit=True, implicit_diff_cgtol=1e-3):
 
         super().__init__()
 
@@ -31,15 +31,16 @@ class JaxMuseProblem(MuseProblem):
 
         if implicit_diff:
             
-            def _get_H_i(self, rng, *, θ, method=None, θ_tol=None, z_tol=None, step=None, skip_errors=False):
+            def _get_H_i(self, rng, z_MAP, *, θ, method=None, θ_tol=None, z_tol=None, step=None, skip_errors=False):
 
                 try:
 
-                    cg_kwargs = dict(tol=z_tol) if z_tol is not None else dict()
+                    cg_kwargs = dict(tol=implicit_diff_cgtol)
 
                     (x, z) = self.sample_x_z(rng, θ)
-                    z_MAP_guess = self.z_MAP_guess_from_truth(x, z, θ)
-                    z_MAP = self.z_MAP_and_score(x, z_MAP_guess, θ, method=method, θ_tol=θ_tol, z_tol=z_tol).z
+                    if z_MAP is None:
+                        z_MAP_guess = self.z_MAP_guess_from_truth(x, z, θ)
+                        z_MAP = self.z_MAP_and_score(x, z_MAP_guess, θ, method=method, θ_tol=θ_tol, z_tol=z_tol).z
 
                     θ_vec, z_MAP_vec = self.ravel_θ(θ), self.ravel_z(z_MAP)
                     unravel_θ, unravel_z = self.unravel_θ, self.unravel_z
@@ -103,16 +104,14 @@ class JaxMuseProblem(MuseProblem):
         if method is None:
             method = "l-bfgs-experimental-do-not-rely-on-this"
 
-        ravel, unravel = self._ravel_unravel(z_guess)
-        
         soln = minimize(
-            lambda z_vec: -self.logLike(x, unravel(z_vec), θ), 
-            ravel(z_guess), 
+            lambda z_vec: -self.logLike(x, self.unravel_z(z_vec), θ), 
+            self.ravel_z(z_guess), 
             method = method,
             options = options
         )
 
-        zMAP = unravel(soln.x)
+        zMAP = self.unravel_z(soln.x)
 
         gradθ = self.val_gradz_gradθ_logLike(x, zMAP, θ)[2]
 
@@ -120,7 +119,7 @@ class JaxMuseProblem(MuseProblem):
 
     def gradθ_hessθ_logPrior(self, θ, transformed_θ=None):
         g = grad(self.logPrior)(θ)
-        H = hessian(self.logPrior)(θ)
+        H = hessian(lambda θ_vec: self.logPrior(self.unravel_θ(θ_vec)))(self.ravel_θ(θ))
         return (g, H)
 
     def _ravel_unravel(self, x):

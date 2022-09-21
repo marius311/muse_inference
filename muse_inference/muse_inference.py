@@ -25,9 +25,11 @@ class MuseResult():
         self.J = None
         self.Σ_inv = None
         self.Σ = None
+        self.H_prior = None
         self.dist = None
         self.history = []
         self.s_MAP_sims = []
+        self.z_MAP_sims = []
         self.Hs = []
         self.rng = None
         self.ravel = None
@@ -39,8 +41,8 @@ class MuseResult():
 
             Nθ = len(self.ravel(self.θ))
 
-            H_prior = self.ravel(prob.gradθ_hessθ_logPrior(self.θ, transformed_θ=False)[1]).reshape(Nθ,Nθ)
-            self.Σ_inv = self.H.T @ np.linalg.pinv(self.J) @ self.H - H_prior
+            self.H_prior = -self.ravel(prob.gradθ_hessθ_logPrior(self.θ, transformed_θ=False)[1]).reshape(Nθ,Nθ)
+            self.Σ_inv = self.H.T @ np.linalg.pinv(self.J) @ self.H + self.H_prior
             self.Σ = np.linalg.pinv(self.Σ_inv)
             if self.θ is not None:
                 if Nθ == 1:
@@ -253,6 +255,7 @@ class MuseProblem():
                 rng = self._default_rng()
             else:
                 rng = result.rng
+        result.rng = rng
 
         θ_tol = θ_tol_initial
 
@@ -274,7 +277,7 @@ class MuseProblem():
         
         xz_sims = [self.sample_x_z(_rng, θ) for _rng in self._split_rng(rng, nsims)]
         xs = [self.x] + [x for (x,_) in xz_sims]
-        ẑs = [z0]     + [z0 if z0 is not None else z for (_, z) in xz_sims]
+        ẑs = [z0]     + [self.z_MAP_guess_from_truth(x, z, θ) for (x, z) in xz_sims]
 
         pbar = tqdm(total=(maxsteps-len(result.history))*(nsims+1), desc="MUSE") if progress else None
 
@@ -307,11 +310,11 @@ class MuseProblem():
                     MAP_history_dat, *MAP_history_sims = [MAP.history for MAP in MAPs]
                 s_MAP_dat, *s_MAP_sims = [MAP.s for MAP in MAPs]
                 s̃_MAP_dat, *s̃_MAP_sims = [MAP.s̃ for MAP in MAPs]
-                s̃_MUSE = self.unravel_θ(self.ravel_θ(s̃_MAP_dat) - np.mean(np.stack(list(map(self.ravel_θ, s̃_MAP_sims))), axis=0))
+                s̃_MUSE = self.unravel_θ(self.ravel_θ(s̃_MAP_dat) - np.nanmean(np.stack(list(map(self.ravel_θ, s̃_MAP_sims))), axis=0))
                 s̃_prior, H̃_prior = self.gradθ_hessθ_logPrior(θ̃, transformed_θ=True)
                 s̃_post = self.unravel_θ(self.ravel_θ(s̃_MUSE) + self.ravel_θ(s̃_prior))
 
-                H̃_inv_like_sims = np.diag(-1 / np.var(np.stack(list(map(self.ravel_θ, s̃_MAP_sims))), axis=0))
+                H̃_inv_like_sims = np.diag(-1 / np.nanvar(np.stack(list(map(self.ravel_θ, s̃_MAP_sims))), axis=0))
                 H̃_inv_post = np.linalg.pinv(np.linalg.pinv(H̃_inv_like_sims) + self.ravel_θ(H̃_prior).reshape(Nθ,Nθ))
                 
                 t = datetime.now() - t0
@@ -342,6 +345,7 @@ class MuseProblem():
 
         result.θ = θunreg
         result.s_MAP_sims = result.history[-1]["s_MAP_sims"]
+        _, *result.z_MAP_sims = ẑs
 
         if get_covariance:
             self.get_J(
@@ -421,14 +425,15 @@ class MuseProblem():
         return result
 
 
-    def _get_H_i(self, rng, *, θ, method=None, θ_tol=None, z_tol=None, step=None, skip_errors=False):
+    def _get_H_i(self, rng, z_MAP_guess_fid, *, θ, method=None, θ_tol=None, z_tol=None, step=None, skip_errors=False):
 
         # for each sim, do one fit at fiducial which we'll
         # reuse as a starting point when fudging θ by +/-ϵ
         θfid = θ
         (x, z) = self.sample_x_z(rng, θfid)
-        z_MAP_guess = self.z_MAP_guess_from_truth(x, z, θfid)
-        z_MAP_guess_fid = self.z_MAP_and_score(x, z_MAP_guess, θfid, method=method, θ_tol=θ_tol, z_tol=z_tol).z
+        if z_MAP_guess_fid is None:
+            z_MAP_guess = self.z_MAP_guess_from_truth(x, z, θfid)
+            z_MAP_guess_fid = self.z_MAP_and_score(x, z_MAP_guess, θfid, method=method, θ_tol=θ_tol, z_tol=z_tol).z
 
         def get_s_MAP(θvec):
             θ = self.unravel_θ(θvec)
@@ -457,6 +462,7 @@ class MuseProblem():
         pmap = map,
         progress = False, 
         skip_errors = False,
+        use_median = False
     ):
 
         np = self.np
@@ -493,11 +499,13 @@ class MuseProblem():
             pbar = partial(tqdm, total=nsims_remaining, desc="get_H", disable=(not progress))
 
             t0 = datetime.now()
-            rngs = self._split_rng(rng, nsims_remaining)
+            rngs = self._split_rng(rng, nsims)[-nsims_remaining:]
+            z_MAP_sims = (result.z_MAP_sims + [None]*(max(0, nsims - len(result.z_MAP_sims))))[-nsims_remaining:]
             _get_H_i = partial(self._get_H_i, θ=θ, method=method, θ_tol=θ_tol, z_tol=z_tol, step=step, skip_errors=skip_errors)
-            result.Hs.extend(H for H in pbar(map(_get_H_i, rngs)) if H is not None)
+            result.Hs.extend(H for H in pbar(map(lambda args: _get_H_i(*args), zip(rngs, z_MAP_sims)) )if H is not None)
             result.time += datetime.now() - t0
 
-        result.H = np.mean(np.array(result.Hs), axis=0)
+        avg = np.median if use_median else np.mean
+        result.H = avg(np.array(result.Hs), axis=0)
         result.finalize(self)
         return result

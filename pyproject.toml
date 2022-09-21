@@ -5,20 +5,25 @@ description = ""
 authors = ["Marius Millea <mariusmillea@gmail.com>"]
 
 [tool.poetry.dependencies]
-python = "^3.7.13"
+python = "^3.7.14"
 scipy = "^1.4.1"
 numpy = ">=1.17.0, <=1.22.4"
 tqdm = "^4"
 
 [tool.poetry.dev-dependencies]
+corner = "^2.2.1"
 coverage = "^6.4.1"
+emcee = "^3.1.2"
 ipykernel = "^6.7"
+ipympl = "^0.9.2"
 ipython = "^7"
-jax = "^0.3"
+jax = {extras = ["cuda"], version = "^0.3"}
 jaxlib = "^0.3"
+jaxopt = "^0.4.3"
 jupytext = "^1.13"
 multiprocess = "^0.70.12"
 nbsphinx = "^0.8.8"
+numpyro = "^0.10.0"
 pymc = "^4"
 pytest = "^6.2"
 pytest-cov = "^3.0.0"
@@ -29,3 +34,8 @@ ttictoc = "^0.5.6"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[[tool.poetry.source]]
+name = "jorenham/jax_pep503"
+url = "https://jorenham.github.io/jax_pep503/"
+secondary = true
