@@ -5,8 +5,8 @@ description = ""
 authors = ["Marius Millea <mariusmillea@gmail.com>"]
 
 [tool.poetry.dependencies]
-python = "^3.7.14"
-scipy = "^1.4.1"
+python = ">=3.8,<3.12"
+scipy = "1.9"
 numpy = ">=1.17.0, <=1.22.4"
 tqdm = "^4"
 
@@ -24,7 +24,7 @@ jupytext = "^1.13"
 multiprocess = "^0.70.12"
 nbsphinx = "^0.8.8"
 numpyro = "^0.10.0"
-pymc = "^4"
+pymc = "^4.1"
 pytest = "^6.2"
 pytest-cov = "^3.0.0"
 Sphinx = "^4.4"

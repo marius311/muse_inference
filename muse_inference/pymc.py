@@ -14,7 +14,7 @@ from scipy.optimize import minimize
 
 import pymc as pm
 from pymc.aesaraf import find_rng_nodes, reseed_rngs
-from pymc.distributions import joint_logpt
+from pymc.distributions import joint_logp
 
 from .muse_inference import MuseProblem
 
@@ -37,7 +37,7 @@ class PyMCMuseProblem(MuseProblem):
 
         # get log-posterior density, removing conditioning on x so we
         # can swap in other values later
-        rvs_to_values, logpt = unconditioned_logpt(model)
+        rvs_to_values, logp = unconditioned_logp(model)
 
         # if not provided, automatically figure out which variables
         # correspond to (x,z,θ). the x have observed values, the θ are
@@ -63,7 +63,7 @@ class PyMCMuseProblem(MuseProblem):
         self._ravel_z = self._unravel_z = lambda x: x
 
         # get log-prior density
-        logpriort = at.sum([logpt.sum() for (logpt, var) in zip(model.logpt(sum=False, jacobian=True), model.basic_RVs) if var in θ_RVs])
+        logpriort = at.sum([logp.sum() for (logp, var) in zip(model.logp(sum=False, jacobian=True), model.basic_RVs) if var in θ_RVs])
 
         # figure out if any transforms are needed and if so, create
         # functions to apply forward or backward transformation stored
@@ -103,15 +103,15 @@ class PyMCMuseProblem(MuseProblem):
         # terms of the transformed + raveled z and transformed or
         # untransformed + raveled θ
         def get_gradients(θ_unvec):
-            logpt_vec = aesara.clone_replace(logpt, dict(zip(z_vals+θ_vals, z_vals_unvec+θ_unvec)))
+            logp_vec = aesara.clone_replace(logp, dict(zip(z_vals+θ_vals, z_vals_unvec+θ_unvec)))
             logpriort_vec = aesara.clone_replace(logpriort, dict(zip(θ_vals, θ_unvec)))
 
-            dθlogpt_vec = aesara.grad(logpt_vec, wrt=θ_vals_vec)
-            dzlogpt_vec = aesara.grad(logpt_vec, wrt=z_vals_vec)
+            dθlogp_vec = aesara.grad(logp_vec, wrt=θ_vals_vec)
+            dzlogp_vec = aesara.grad(logp_vec, wrt=z_vals_vec)
             dlogpriort_vec = aesara.grad(logpriort_vec, wrt=θ_vals_vec)
             d2logpriort_vec = aesara.gradient.hessian(logpriort_vec, wrt=θ_vals_vec)
 
-            logp_dzθlogp = aesara.function(x_vals + [z_vals_vec, θ_vals_vec], [logpt_vec, dzlogpt_vec, dθlogpt_vec])
+            logp_dzθlogp = aesara.function(x_vals + [z_vals_vec, θ_vals_vec], [logp_vec, dzlogp_vec, dθlogp_vec])
             dlogprior_d2logprior = aesara.function([θ_vals_vec], [dlogpriort_vec, d2logpriort_vec])
 
             return logp_dzθlogp, dlogprior_d2logprior
@@ -176,11 +176,11 @@ class PyMCMuseProblem(MuseProblem):
         return copy(rng).generate_state(N)
 
 
-def unconditioned_logpt(model, jacobian: bool = True):
+def unconditioned_logp(model, jacobian: bool = True):
     """
     Given a model where some of the variables have been "conditioned",
     ie an observed value has been provided, return a tuple of
-    `(rvs_to_values, logpt)` where all of the variables have been made
+    `(rvs_to_values, logp)` where all of the variables have been made
     free again.
     """
     
@@ -201,8 +201,8 @@ def unconditioned_logpt(model, jacobian: bool = True):
                 f"Requested variable {var} not found among the model variables"
             )
             
-    logpt = joint_logpt(list(rvs_to_values.keys()), rvs_to_values, sum=True, jacobian=jacobian)
-    return rvs_to_values, logpt
+    logp = joint_logp(list(rvs_to_values.keys()), rvs_to_values, sum=True, jacobian=jacobian)
+    return rvs_to_values, logp
 
 
 def cat_flatten(tensors):
