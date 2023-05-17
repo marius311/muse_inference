@@ -31,11 +31,15 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="index.html" class="icon icon-home"> muse_inference
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            muse_inference
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -60,8 +64,8 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>Example</li>
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Example</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/example.md.txt" rel="nofollow"> View page source</a>
       </li>
@@ -181,10 +185,11 @@ div.nboutput.container div.prompt > div {
     }
 }
 
-/* disable scrollbars on prompts */
+/* disable scrollbars and line breaks on prompts */
 div.nbinput.container div.prompt pre,
 div.nboutput.container div.prompt pre {
     overflow: hidden;
+    white-space: pre;
 }
 
 /* input/output area */
@@ -449,7 +454,7 @@ x_i &amp;\sim {\rm Normal}(z_i, 1)
 <div class="output_area rendered_html docutils container">
 <div>
   <progress value='1000' class='' max='1000' style='width:300px; height:20px; vertical-align: middle;'></progress>
-  100.00% [1000/1000 00:25&lt;00:00 Sampling chain 0, 0 divergences]
+  100.00% [1000/1000 00:39&lt;00:00 Sampling chain 0, 0 divergences]
 </div></div>
 </div>
 <p>We next compute the MUSE estimate for the same problem. To reach the same Monte Carlo error as HMC, the number of MUSE simulations should be the same as the effective sample size of the chain we just ran. This is:</p>
@@ -468,7 +473,7 @@ x_i &amp;\sim {\rm Normal}(z_i, 1)
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-199
+234
 </pre></div></div>
 </div>
 <p>Running the MUSE estimate,</p>
@@ -489,8 +494,8 @@ x_i &amp;\sim {\rm Normal}(z_i, 1)
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-MUSE: 100%|██████████| 10000/10000 [00:14&lt;00:00, 711.89it/s]
-get_H: 100%|██████████| 19/19 [00:01&lt;00:00, 18.07it/s]
+MUSE: 100%|██████████| 11750/11750 [00:19&lt;00:00, 598.36it/s]
+get_H: 100%|██████████| 23/23 [00:01&lt;00:00, 18.55it/s]
 </pre></div></div>
 </div>
 <p>Lets also try mean-field variational inference (MFVI) to compare to another approximate method.</p>
@@ -531,7 +536,7 @@ get_H: 100%|██████████| 19/19 [00:01&lt;00:00, 18.07it/s]
 <div class="output_area rendered_html docutils container">
 <div>
   <progress value='10000' class='' max='10000' style='width:300px; height:20px; vertical-align: middle;'></progress>
-  100.00% [10000/10000 01:24&lt;00:00 Average Loss = 17,685]
+  100.00% [10000/10000 01:43&lt;00:00 Average Loss = 17,685]
 </div></div>
 </div>
 <p>Now lets plot the different estimates. In this case, MUSE gives a nearly perfect answer using only a fraction posterior gradient calls. MFVI struggles in both speed and accuracy by comparison.</p>
